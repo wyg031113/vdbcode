@@ -1,6 +1,6 @@
 all:vdb
 CC=gcc
-CFLAGS=-ggdb3
+CFLAGS=-O3
 LIBS=-lpbc -lgmp
 vdb:vdb.c
 	$(CC) $(CFLAGS) $< $(LIBS) -o $@

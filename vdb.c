@@ -75,6 +75,7 @@ int vdb_setup(struct setup_struct *ss, int q, int argc, char *argv[])
 {
 	struct pp_struct *pp;
 	element_t *z;
+	element_t tz;
 	int i, j;
 
 	memset(ss, 0, sizeof(struct setup_struct));
@@ -119,8 +120,25 @@ int vdb_setup(struct setup_struct *ss, int q, int argc, char *argv[])
 	//	element_printf("z=%B\n", z);
 	//	element_printf("h%d=%B\n\n", i, pp->hi[i]);
 	}
+
 	element_pp_clear(gpp);
+	element_init_Zr(tz, pp->pairing);
+
+	//element_pp_t gpp;
+	element_pp_init(gpp, pp->g);
+	printf("Begin q*q\n");
 	for(i = 0; i < q; i++)
+		for(j = i+1; j < q; j++)
+		{
+			element_init_G1(pp->hij[i*q+j], pp->pairing);
+			element_init_G1(pp->hij[j*q+i], pp->pairing);
+
+			element_mul_zn(tz, z[i],z[j]);
+			element_pp_pow_zn(pp->hij[i*q+j], tz, gpp);
+			element_set(pp->hij[j*q+i], pp->hij[i*q+j]);
+		}
+	element_pp_clear(gpp);
+	/*for(i = 0; i < q; i++)
 	{
 		element_pp_t gpp;
 		element_pp_init(gpp, pp->hi[i]);
@@ -139,7 +157,7 @@ int vdb_setup(struct setup_struct *ss, int q, int argc, char *argv[])
 		element_pp_clear(gpp);
 	}
 
-
+*/
 	ss->PK.pp =  ss->S.pp = pp;	
 
 	//CR in G1
