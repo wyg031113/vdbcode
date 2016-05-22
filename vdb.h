@@ -43,7 +43,18 @@ struct setup_struct
 	struct pk_struct PK;
 	struct s_struct S;
 	element_t SK;
+	element_t H0;
+	int T;
 };
 
+struct proof_tao
+{
+	mpz_t vx;
+	element_t paix;
+	element_t HT;
+	element_t CTm1;
+	element_t CT;
+	int T;
+};
 
 #endif /*__VDB_H__*/
