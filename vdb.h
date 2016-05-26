@@ -20,11 +20,12 @@ struct pk_struct
 	element_t Y;
 	element_t CR;
 	element_t C0;
+	element_t Cf1;
 };
 
 struct aux_struct
 {
-	//H0
+	element_t H0;
 	element_t Cf1;
 	element_t C0;
 	int T;
@@ -57,4 +58,11 @@ struct proof_tao
 	int T;
 };
 
+/*pair = |-|(h(x,j) ^ vj)  j in 1 to q and j != x
+ *
+ */
+int vdb_query_paix(element_t paix, struct setup_struct *ss, int x);
+int vdb_verify(struct setup_struct *ss, int x, struct proof_tao *prf);
+//calculate t'
+int vdb_update_client(element_t tpx, struct setup_struct *ss, int x, mpz_t vx,  mpz_t new_vx);
 #endif /*__VDB_H__*/

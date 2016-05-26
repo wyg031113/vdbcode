@@ -1,15 +1,12 @@
-all:vdb_client vdb_server
+all:vdb_test
 CC=gcc
-CFLAGS=-O3
+CFLAGS=-ggdb3
 LIBS=-lpbc -lgmp
-vdb_client_c=vdb.c vdb_client.c
-vdb_server_c=vdb.c vdb_server.c
+vdb_test_c=vdb.c vdb_test.c simple_db.c
 #vdb:vdb.c
 #	$(CC) $(CFLAGS) $< $(LIBS) -o $@
-vdb_server:$(vdb_server_c)
-	$(CC) $(CFLAGS) $(vdb_server_c) $(LIBS) -o $@
 
-vdb_client:$(vdb_client_c)
-	$(CC) $(CFLAGS) $(vdb_client_c) $(LIBS) -o $@
+vdb_test:$(vdb_test_c)
+	$(CC) $(CFLAGS) $(vdb_test_c) $(LIBS) -o $@
 clean:
-	rm -rf *.o vdb vdb_server vdb_client
+	rm -rf *.o vdb vdb_test

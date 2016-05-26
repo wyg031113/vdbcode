@@ -2,3 +2,7 @@ vdb
 vdb_client
 vdb_server
 *.swp
+vdb_test
+*.o
+tags
+cscope.out
