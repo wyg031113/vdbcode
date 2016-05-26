@@ -3,8 +3,6 @@
 
 #include "vdb.h"
 #include "simple_db.h"
-static mpz_t max_integer;
-#define MAX_INTEGER "999999999"
 void showss(struct setup_struct *ss)
 {
 	struct pp_struct *pp = ss->S.pp;
@@ -113,8 +111,6 @@ int vdb_setup(struct setup_struct *ss, int q, int argc, char *argv[])
 	if(pp->hij == NULL)
 		goto out2;
 
-    mpz_init(max_integer);
-    mpz_set_str(max_integer, MAX_INTEGER, 10);
 	pp->q = q;
 
 	pbc_demo_pairing_init(pp->pairing, argc, argv); //init G1 G2

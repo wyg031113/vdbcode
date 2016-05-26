@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include "vdb.h"
-int q = 4;
+int q = 10;
 void test_vdb() //虚拟数据库测试
 {
     int i;
@@ -239,9 +239,16 @@ int main(int argc, char *argv[])
 */
 printf("test update.\n");
     test_query(v,3);
-    mpz_set_str(vt, "620", 10);
+    mpz_set_str(vt, "620000", 10);
     test_client_update(3, v, vt);
     test_query(v,3);
+
+
+printf("test update.\n");
+    test_query(v,8);
+    mpz_set_str(vt, "1231487", 10);
+    test_client_update(8, v, vt);
+    test_query(v,8);
 
 
 
