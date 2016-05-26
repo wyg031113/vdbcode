@@ -301,7 +301,7 @@ int vdb_verify(struct setup_struct *ss, int x, struct proof_tao *prf)
 	getX(x, v);
 	element_pow_mpz(hv, pp->hi[x], v);
 	element_div(gh, ss->PK.C0, prf->HT);
-	element_mul(ghhv, gh, hv);
+	element_div(ghhv, gh, hv);
 	pairing_apply(e3, ghhv, pp->hi[x], pp->pairing);
 
 	//e(paix, g)

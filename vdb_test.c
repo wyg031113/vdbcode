@@ -127,7 +127,8 @@ int server_update(struct setup_struct *ss, element_t tx,
     }
     */
     setX(x, vt);
-    element_mul(CT, tx, a->CU0);
+    element_mul(CT, ss->H0, ss->PK.CU0);
+    element_set(a->CU0, ss->PK.CU0);
     element_set(a->Cf1, ss->PK.C0);
     element_set(ss->PK.C0, CT);
     element_set(a->H0, tx);
@@ -158,6 +159,13 @@ void test_query(mpz_t v, int x)
     mpz_get_str(buf, 10, tao.vx);
     printf("db[x]=%s\n", buf);
 
+
+    mpz_t iv;
+    mpz_init(iv);
+    mpz_set_str(iv, "87777", 10);
+    //setX(1, iv);
+    mpz_clear(iv);
+
     test_verify(x);
 
 }
@@ -166,9 +174,11 @@ int main(int argc, char *argv[])
     init_db(q);
     mpz_t iv;
     mpz_init(iv);
-    mpz_set_str(iv, "3333", 10);
+    mpz_set_str(iv, "77777", 10);
     setX(0, iv);
+    mpz_set_str(iv, "9999", 10);
     setX(1, iv);
+    mpz_set_str(iv, "4424242342253", 10);
     setX(2, iv);
     mpz_clear(iv);
 	printf("vdb client running....\n");
@@ -185,10 +195,12 @@ int main(int argc, char *argv[])
     mpz_init(v);
     mpz_init(vt);
     test_query(v, 0);
+    //test_query(v, 0);
 
     printf("test update.\n");
     mpz_set_str(vt, "12345", 10);
     test_client_update(0, v, vt);
+
 
     printf("+++++++++++++++++++++++\n");
     test_query(v, 0);
