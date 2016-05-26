@@ -21,7 +21,7 @@ struct pk_struct
 	element_t CR;
 	element_t C0;
     element_t CU0;
-	//element_t Cf1;
+	element_t Cf1;
 };
 
 struct aux_struct

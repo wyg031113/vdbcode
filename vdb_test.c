@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include "vdb.h"
-int q = 3;
+int q = 4;
 void test_vdb() //虚拟数据库测试
 {
     int i;
@@ -67,12 +67,12 @@ void server_setup(struct setup_struct *ss, struct aux_struct *a)
 {
    element_set(a->H0, ss->H0);
    element_set(a->CU0, ss->PK.CU0);
-   element_set(a->Cf1, ss->PK.C0);
+   element_set(a->Cf1, ss->PK.Cf1);
    a->T = 0;
    element_mul(ss->PK.C0, a->H0, ss->PK.CU0);
 
    printf("AUX:\n");
-   element_printf("H0=%B\nCf1=%B\nCU0=%B\n C0=%B\n",
+   element_printf("H0=%B\nCf1=%B\nCU0=%B\nserver_setup:PK.C0=%B\n",
                    a->H0, a->Cf1, a->CU0, ss->PK.C0);
 }
 
@@ -129,10 +129,10 @@ int server_update(struct setup_struct *ss, element_t tx,
     setX(x, vt);
     element_mul(CT, ss->H0, ss->PK.CU0);
     element_set(a->CU0, ss->PK.CU0);
-    element_set(a->Cf1, ss->PK.C0);
+    element_set(a->Cf1, ss->PK.Cf1);
     element_set(ss->PK.C0, CT);
     element_set(a->H0, tx);
-    a->T++;
+    a->T = ss->T;
 out:
     element_clear(tpx);
     element_clear(CT);
@@ -145,6 +145,7 @@ void test_client_update(int x, mpz_t v, mpz_t vt)
     element_t tpx;
     element_init_G1(tpx, ss.PK.pp->pairing);
     ss.T++;
+   // element_printf("Before update:v=%B\nVt=%B\n", v, vt);
     vdb_update_client(tpx, &ss, x, v, vt);
     element_printf("tpx = %B\n", tpx);
     server_update(&ss, tpx, &as, vt, x);
@@ -155,6 +156,7 @@ void test_query(mpz_t v, int x)
 
     printf("test query x = %d\n", x);
     server_query(&ss, &tao, &as, x);
+    mpz_set(v, tao.vx);
     char buf[256];
     mpz_get_str(buf, 10, tao.vx);
     printf("db[x]=%s\n", buf);
@@ -176,39 +178,72 @@ int main(int argc, char *argv[])
     mpz_init(iv);
     mpz_set_str(iv, "77777", 10);
     setX(0, iv);
+
     mpz_set_str(iv, "9999", 10);
     setX(1, iv);
+
     mpz_set_str(iv, "4424242342253", 10);
     setX(2, iv);
+
+    mpz_set_str(iv, "4424", 10);
+    setX(3, iv);
+
+
+    //mpz_set_str(iv, "4424", 10);
+    //setX(4, iv);
+
     mpz_clear(iv);
+
 	printf("vdb client running....\n");
 
     printf("Setup...\n");
 	vdb_setup(&ss, q, argc, argv);
     init_as_tao(&ss, &as, &tao);
-	showss(&ss);
     server_setup(&ss, &as);  //client send H0 to server, server:C0=H0*C0
+	showss(&ss);
     ss.S.aux = &as;
 
 
     mpz_t v, vt;
     mpz_init(v);
     mpz_init(vt);
-    test_query(v, 0);
+    /*test_query(v, 0);
     //test_query(v, 0);
 
-    printf("test update.\n");
+    printf("ok,before update\n");
+    fflush(stdin);
+    //element_printf("test update. v = %B\n", v);
     mpz_set_str(vt, "12345", 10);
     test_client_update(0, v, vt);
-
+*/
 
     printf("+++++++++++++++++++++++\n");
+    /*test_query(v, 0);
+
+
+    mpz_set_str(vt, "252", 10);
+    test_client_update(0, v, vt);
     test_query(v, 0);
 
-/*    printf("test update.\n");
-    mpz_set_str(vt, "9999999", 10);
-    test_client_update(0, v, vt);
+   printf("test update.\n");
+    test_query(v,1);
+    mpz_set_str(vt, "9865", 10);
+    test_client_update(1, v, vt);
+    test_query(v,1);
 */
+/*printf("test update.\n");
+    test_query(v,2);
+    mpz_set_str(vt, "65010", 10);
+    test_client_update(2, v, vt);
+    test_query(v,2);
+*/
+printf("test update.\n");
+    test_query(v,3);
+    mpz_set_str(vt, "620", 10);
+    test_client_update(3, v, vt);
+    test_query(v,3);
+
+
 
     mpz_clear(v);
     mpz_clear(vt);

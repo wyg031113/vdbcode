@@ -3,6 +3,8 @@
 
 #include "vdb.h"
 #include "simple_db.h"
+static mpz_t max_integer;
+#define MAX_INTEGER "999999999"
 void showss(struct setup_struct *ss)
 {
 	struct pp_struct *pp = ss->S.pp;
@@ -24,7 +26,7 @@ void showss(struct setup_struct *ss)
 	printf("PK is:\n");
 	element_printf("Y=%B\n", ss->PK.Y);
 	element_printf("CR=%B\n", ss->PK.CR);
-	element_printf("C0=%B\n", ss->PK.C0);
+	element_printf("PK.C0=%B\n", ss->PK.C0);
 	element_printf("CU0=%B\n", ss->PK.CU0);
 
 	printf("S is: PP aux DB. aux DB\n");
@@ -111,6 +113,8 @@ int vdb_setup(struct setup_struct *ss, int q, int argc, char *argv[])
 	if(pp->hij == NULL)
 		goto out2;
 
+    mpz_init(max_integer);
+    mpz_set_str(max_integer, MAX_INTEGER, 10);
 	pp->q = q;
 
 	pbc_demo_pairing_init(pp->pairing, argc, argv); //init G1 G2
@@ -173,6 +177,7 @@ int vdb_setup(struct setup_struct *ss, int q, int argc, char *argv[])
 	//CR in G1 初始：CR=Cs0=Cf1=
 	element_init_G1(ss->PK.CR, pp->pairing);
 	element_init_G1(ss->PK.C0, pp->pairing);
+	element_init_G1(ss->PK.Cf1, pp->pairing);
 	element_init_G1(ss->PK.CU0, pp->pairing);
     mpz_t v;
     mpz_init(v);
@@ -190,7 +195,7 @@ int vdb_setup(struct setup_struct *ss, int q, int argc, char *argv[])
     }
     element_clear(hv);
     element_printf("CR====%B\n", ss->PK.CR);
-	element_set(ss->PK.C0, ss->PK.CR);
+	element_set(ss->PK.Cf1, ss->PK.CR);
 	element_set(ss->PK.CU0, ss->PK.CR);
 
 //############### compute H0 how to?? what is H????
@@ -299,9 +304,16 @@ int vdb_verify(struct setup_struct *ss, int x, struct proof_tao *prf)
 	element_init_G1(ghhv, pp->pairing);
 	mpz_init(v);
 	getX(x, v);
+    //mpz_add(v, v, max_integer);
 	element_pow_mpz(hv, pp->hi[x], v);
+    element_printf("hv=%B\n", hv);
+    element_printf("hi=%B\n", pp->hi[x]);
+    printf("x=%d\n", x);
+    show_mpz("xxxv", v);
 	element_div(gh, ss->PK.C0, prf->HT);
+    element_printf("CT/HT=%B\n", gh);
 	element_div(ghhv, gh, hv);
+    element_printf("ghhv=%B\n", ghhv);
 	pairing_apply(e3, ghhv, pp->hi[x], pp->pairing);
 
 	//e(paix, g)
@@ -322,10 +334,16 @@ int vdb_verify(struct setup_struct *ss, int x, struct proof_tao *prf)
 }
 
 //calculate t'
+void show_mpz(const char *name, mpz_t v)
+{
+    char buf[256];
+    mpz_get_str(buf,10,  v);
+    printf("%s=%s\n", name, buf);
+}
 int vdb_update_client(element_t tpx, struct setup_struct *ss, int x, mpz_t vx,  mpz_t new_vx)
 {
 	element_t ch, hv, new_CT, hs, new_HT;
-	mpz_t v;
+	mpz_t v,zero;
 
 	struct pk_struct *PK = &ss->PK;
 	struct s_struct *S = &ss->S;
@@ -335,11 +353,31 @@ int vdb_update_client(element_t tpx, struct setup_struct *ss, int x, mpz_t vx,  
 	element_init_G1(hv, pp->pairing);
 	element_init_G1(new_CT, pp->pairing);
 	mpz_init(v);
-
+	//mpz_init(zero);
+    show_mpz("vx", vx);
+    show_mpz("new_vx", new_vx);
 	element_div(ch, PK->C0, ss->H0); //ch = CT-1/HT-1
-	mpz_sub(v,  new_vx, vx);		 //v = v' - v
+    element_printf("======ch=%B\n", ch);
+	mpz_sub(v,  vx, new_vx);		 //v = v' - v
+    //mpz_add(v, v, max_integer);
+    //mpz_mod(v, v, max_integer);
+	//mpz_sub(v,  zero, v);		 //v = v' - v
+    show_mpz("v-v'", v);
+   // element_printf("======v'-v=%B\n", ch);
 	element_pow_mpz(hv, pp->hi[x], v); //hv = hx^v
-	element_mul(new_CT, ch, hv);       //CT=ch * hv
+
+    element_t tmp;
+    element_init_G1(tmp, pp->pairing);
+    element_pow_mpz(tmp, pp->hi[x], new_vx);
+    element_mul(tmp, tmp, hv);
+    element_printf("tmp=%B\n", tmp);
+    show_mpz("vx", vx);
+	element_pow_mpz(tmp, pp->hi[x], vx); //hv = hx^v
+    element_printf("tmp2=%B\n", tmp);
+    element_printf("======hv=%B\n", hv);
+    printf("x=%d\n", x);
+    element_printf("======hi=%B\n", pp->hi[x]);
+	element_div(new_CT, ch, hv);       //CT=ch * hv
 	element_clear(ch);
 	element_clear(hv);
 	mpz_clear(v);
@@ -347,12 +385,15 @@ int vdb_update_client(element_t tpx, struct setup_struct *ss, int x, mpz_t vx,  
 	element_init_G1(hs, pp->pairing);
 	element_init_G1(new_HT, pp->pairing);
 	//new_T = ss->T + 1;					//T=T+1
+    element_printf("########before hash: CT-1:%B\nCUT:%B\n", PK->C0, new_CT);
+    printf("T=%d\n", ss->T);
 	hash(hs, PK->C0, new_CT, ss->T);	//hs=hash(CT-1, CT, T)
 	element_pow_zn(new_HT, hs, ss->SK);  //HT = hs^y
 
 	element_set(tpx, new_HT);			//update paramter
 	element_set(PK->CU0, new_CT);
 	element_set(ss->H0, new_HT);
+    element_set(PK->Cf1, PK->C0);
 	//ss->T = new_T;
 
 	element_clear(new_CT);
