@@ -342,7 +342,7 @@ void show_mpz(const char *name, mpz_t v)
 }
 int vdb_update_client(element_t tpx, struct setup_struct *ss, int x, mpz_t vx,  mpz_t new_vx)
 {
-	element_t ch, hv, new_CT, hs, new_HT;
+	element_t ch, hv, hv2,  new_CT, hs, new_HT;
 	mpz_t v,zero;
 
 	struct pk_struct *PK = &ss->PK;
@@ -351,6 +351,7 @@ int vdb_update_client(element_t tpx, struct setup_struct *ss, int x, mpz_t vx,  
 
 	element_init_G1(ch, pp->pairing);
 	element_init_G1(hv, pp->pairing);
+	element_init_G1(hv2, pp->pairing);
 	element_init_G1(new_CT, pp->pairing);
 	mpz_init(v);
 	//mpz_init(zero);
@@ -358,13 +359,15 @@ int vdb_update_client(element_t tpx, struct setup_struct *ss, int x, mpz_t vx,  
     show_mpz("new_vx", new_vx);
 	element_div(ch, PK->C0, ss->H0); //ch = CT-1/HT-1
     element_printf("======ch=%B\n", ch);
-	mpz_sub(v,  vx, new_vx);		 //v = v' - v
+	//mpz_sub(v,  vx, new_vx);		 //v = v' - v
     //mpz_add(v, v, max_integer);
     //mpz_mod(v, v, max_integer);
 	//mpz_sub(v,  zero, v);		 //v = v' - v
-    show_mpz("v-v'", v);
+//    show_mpz("v-v'", v);
    // element_printf("======v'-v=%B\n", ch);
-	element_pow_mpz(hv, pp->hi[x], v); //hv = hx^v
+	element_pow_mpz(hv, pp->hi[x], vx); //hv = hx^v
+	element_pow_mpz(hv2, pp->hi[x], new_vx); //hv = hx^v
+    element_div(hv, hv, hv2);
 
     element_t tmp;
     element_init_G1(tmp, pp->pairing);
@@ -380,6 +383,7 @@ int vdb_update_client(element_t tpx, struct setup_struct *ss, int x, mpz_t vx,  
 	element_div(new_CT, ch, hv);       //CT=ch * hv
 	element_clear(ch);
 	element_clear(hv);
+	element_clear(hv2);
 	mpz_clear(v);
 
 	element_init_G1(hs, pp->pairing);
