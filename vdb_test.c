@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include "vdb.h"
-int q = 10;
-void test_vdb()
+int q = 3;
+void test_vdb() //虚拟数据库测试
 {
     int i;
     char s[256];
@@ -25,6 +25,8 @@ void test_vdb()
 struct setup_struct ss;
 struct aux_struct as;
 struct proof_tao tao;
+/*初始化证据tao和附加信息aux
+ */
 void init_as_tao(struct setup_struct *s,
                  struct aux_struct *a,
                  struct proof_tao *t)
@@ -32,7 +34,7 @@ void init_as_tao(struct setup_struct *s,
     struct pp_struct *pp = s->PK.pp;
     element_init_G1(a->H0, pp->pairing);
     element_init_G1(a->Cf1, pp->pairing);
-    element_init_G1(a->C0, pp->pairing);
+    element_init_G1(a->CU0, pp->pairing);
     a->T = 0;
 
     mpz_init(t->vx);
@@ -42,12 +44,15 @@ void init_as_tao(struct setup_struct *s,
     element_init_G1(t->CT, pp->pairing);
     t->T  = 0;
 }
+
+/*销毁证据tao和附加信息aux
+ */
 void destroy_as_tao(struct aux_struct *a,
                     struct proof_tao *t)
 {
     element_clear(a->H0);
     element_clear(a->Cf1);
-    element_clear(a->C0);
+    element_clear(a->CU0);
 
     mpz_clear(t->vx);
     element_clear(t->paix);
@@ -56,25 +61,41 @@ void destroy_as_tao(struct aux_struct *a,
     element_clear(t->CT);
 }
 
+/*server在初始化过程时执行：C0=H0*C(0)
+ */
 void server_setup(struct setup_struct *ss, struct aux_struct *a)
 {
    element_set(a->H0, ss->H0);
-   element_set(a->C0, ss->PK.C0);
+   element_set(a->CU0, ss->PK.CU0);
    element_set(a->Cf1, ss->PK.C0);
    a->T = 0;
-   element_mul(a->H0, a->H0, a->C0);
+   element_mul(ss->PK.C0, a->H0, ss->PK.CU0);
 
+   printf("AUX:\n");
+   element_printf("H0=%B\nCf1=%B\nCU0=%B\n C0=%B\n",
+                   a->H0, a->Cf1, a->CU0, ss->PK.C0);
 }
 
+void show_proof(struct proof_tao *t)
+{
+    char buf[256];
+    mpz_get_str(buf, 10, t->vx);
+    printf("--------------show proof-------------------\n");
+    printf("db[x]=%s\n", buf);
+    element_printf("Paix=%B\nHT=%B\nCT-1=%B\nCT=%B\n",
+                    t->paix, t->HT, t->CTm1, t->CT);
+    printf("T=%d\n", t->T);
+}
 void server_query(struct setup_struct *ss, struct proof_tao *t,
                   struct aux_struct *a, int x)
 {
     getX(x, t->vx);
     element_set(t->HT, a->H0);
     element_set(t->CTm1, a->Cf1);
-    element_set(t->CT, a->C0);
+    element_set(t->CT, a->CU0);
     t->T = a->T;
     vdb_query_paix(t->paix, ss, x);
+    show_proof(t);
 }
 
 void test_verify(int x)
@@ -95,7 +116,7 @@ int server_update(struct setup_struct *ss, element_t tx,
     getX(x, v);
     element_init_G1(tpx, ss->PK.pp->pairing);
     element_init_G1(CT, ss->PK.pp->pairing);
-    vdb_update_client(tpx, ss, 0, v, vt);
+   /* vdb_update_client(tpx, ss, x, v, vt);
     element_printf("server:tpx = %B\n", tpx);
 
     if(element_cmp(tpx, tx))
@@ -104,10 +125,11 @@ int server_update(struct setup_struct *ss, element_t tx,
         ret = -1;
         goto out;
     }
+    */
     setX(x, vt);
-    element_mul(CT, tx, a->C0);
-    element_set(a->Cf1, a->C0);
-    element_set(a->C0, CT);
+    element_mul(CT, tx, a->CU0);
+    element_set(a->Cf1, ss->PK.C0);
+    element_set(ss->PK.C0, CT);
     element_set(a->H0, tx);
     a->T++;
 out:
@@ -122,7 +144,7 @@ void test_client_update(int x, mpz_t v, mpz_t vt)
     element_t tpx;
     element_init_G1(tpx, ss.PK.pp->pairing);
     ss.T++;
-    vdb_update_client(tpx, &ss, 0, v, vt);
+    vdb_update_client(tpx, &ss, x, v, vt);
     element_printf("tpx = %B\n", tpx);
     server_update(&ss, tpx, &as, vt, x);
     element_clear(tpx);
@@ -142,6 +164,13 @@ void test_query(mpz_t v, int x)
 int main(int argc, char *argv[])
 {
     init_db(q);
+    mpz_t iv;
+    mpz_init(iv);
+    mpz_set_str(iv, "3333", 10);
+    setX(0, iv);
+    setX(1, iv);
+    setX(2, iv);
+    mpz_clear(iv);
 	printf("vdb client running....\n");
 
     printf("Setup...\n");

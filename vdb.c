@@ -13,7 +13,7 @@ void showss(struct setup_struct *ss)
 	element_printf("pp->g=%B\n", pp->g);
 	printf("Hi is:\n");
 	for(i = 0; i < q; i++)
-		element_printf("pp->h[%d]=%B\n", i,  pp->g);
+		element_printf("pp->h[%d]=%B\n", i,  pp->hi[i]);
 
 
 	printf("Hij is:\n");
@@ -25,6 +25,7 @@ void showss(struct setup_struct *ss)
 	element_printf("Y=%B\n", ss->PK.Y);
 	element_printf("CR=%B\n", ss->PK.CR);
 	element_printf("C0=%B\n", ss->PK.C0);
+	element_printf("CU0=%B\n", ss->PK.CU0);
 
 	printf("S is: PP aux DB. aux DB\n");
 	element_printf("SK=y=%B\n", ss->SK);
@@ -37,20 +38,47 @@ void showss(struct setup_struct *ss)
  * T is the update times
  * y in ZZp
  */
-static element_t ht;
 int hash(element_t H0, element_t Cf1, element_t C0, int T)
 {
-    mpz_t t;
-    element_t  he;
-    mpz_init2(t, T);
+    int len1 = 0;
+    int len2 = 0;
+    int len3 = 0;
+    int len = 0;
+    char *buf = NULL;
+    //mpz_t t;
+    //element_t  he;
+
+    len1 = element_length_in_bytes(Cf1);
+    len2 = element_length_in_bytes(C0);
+    len3 = sizeof(T);
+    len += len1;
+    len += len2;
+    len += len3;
+
+    buf = (char*) malloc(len);
+    if(NULL == buf)
+    {
+        printf("malloc failed in hash!\n");
+        exit(-1);
+    }
+    memset(buf, 0, len);
+    element_to_bytes(buf, Cf1);
+    element_to_bytes(buf+len1, C0);
+    memcpy(buf+len1+len2, &T, len3);
+    element_from_hash(H0, buf, len);
+    /*mpz_init2(t, T);
     element_init_same_as(he, C0);
     printf("T=%d\n", T);
     element_add(he, C0, ht);
 	element_mul_mpz(H0, ht, t);
     element_add(H0, H0, ht);
+    element_add(H0, H0, Cf1);
     //element_printf("H0=%B\n", H0);
     mpz_clear(t);
     element_clear(he);
+    */
+    element_printf("Hash:%B\n", H0);
+    free(buf);
 	return 0;
 }
 
@@ -90,8 +118,8 @@ int vdb_setup(struct setup_struct *ss, int q, int argc, char *argv[])
 	element_init_G1(pp->g, pp->pairing);		//let g be a generator of G1
 	element_random(pp->g);
 
-    element_init_G1(ht, pp->pairing);            //init a ranodm value for hash
-    element_random(ht);
+   // element_init_G1(ht, pp->pairing);            //init a ranodm value for hash
+    //element_random(ht);
 	//compute hi
 //	printf("Beging compute hi\n");
 
@@ -110,11 +138,12 @@ int vdb_setup(struct setup_struct *ss, int q, int argc, char *argv[])
 	}
 
 	element_pp_clear(gpp);
+
 	element_init_Zr(tz, pp->pairing);
 
 	//element_pp_t gpp;
 	element_pp_init(gpp, pp->g);
-	printf("Begin q*q\n");
+	printf("Begin compute hij\n");
 	for(i = 0; i < q; i++)
 		for(j = i+1; j < q; j++)
 		{
@@ -124,36 +153,12 @@ int vdb_setup(struct setup_struct *ss, int q, int argc, char *argv[])
 			element_mul_zn(tz, z[i],z[j]);
 			element_pp_pow_zn(pp->hij[i*q+j], tz, gpp);
 			element_set(pp->hij[j*q+i], pp->hij[i*q+j]);
+
 		}
 	element_pp_clear(gpp);
-	printf("end q*q\n");
-	/*for(i = 0; i < q; i++)
-	{
-		element_pp_t gpp;
-		element_pp_init(gpp, pp->hi[i]);
-		for(j = i+1; j < q; j++)
-		{
+	printf("end compute hij\n");
 
-			element_init_G1(pp->hij[i*q+j], pp->pairing);
-			element_init_G1(pp->hij[j*q+i], pp->pairing);
-
-			//element_pow_zn(pp->hij[i*q+j], pp->hi[i], z[j]);
-			element_pp_pow_zn(pp->hij[i*q+j], z[j], gpp);
-			element_set(pp->hij[j*q+i], pp->hij[i*q+j]);
-
-			//element_printf("h[%d][%d] =%B\n\n", i, j, pp->hij[i*q+j]);
-		}
-		element_pp_clear(gpp);
-	}
-
-*/
-	ss->PK.pp =  ss->S.pp = pp;
-
-	//CR in G1
-	element_init_G1(ss->PK.CR, pp->pairing);
-	element_init_G1(ss->PK.C0, pp->pairing);
-	element_set1(ss->PK.CR);
-	element_set(ss->PK.C0, ss->PK.CR);
+    ss->PK.pp =  ss->S.pp = pp;
 
 	//random chose y==SK
 	element_init_Zr(ss->SK, pp->pairing);
@@ -162,8 +167,32 @@ int vdb_setup(struct setup_struct *ss, int q, int argc, char *argv[])
 
 	//compute Y
 	element_init_G1(ss->PK.Y, pp->pairing);
-	element_pow_zn(ss->PK.Y, pp->g, ss->SK);
+	element_pow_zn(ss->PK.Y, pp->g, ss->SK); //Y=g^y
     element_printf("Y=%B\n", ss->PK.Y);
+
+	//CR in G1 初始：CR=Cs0=Cf1=
+	element_init_G1(ss->PK.CR, pp->pairing);
+	element_init_G1(ss->PK.C0, pp->pairing);
+	element_init_G1(ss->PK.CU0, pp->pairing);
+    mpz_t v;
+    mpz_init(v);
+    element_t hv;
+    element_init_G1(hv, pp->pairing);
+	element_set1(ss->PK.CR);
+    for(i = 0; i < q; i++)
+    {
+        getX(i, v);
+        element_pow_mpz(hv, pp->hi[i], v);
+        if(i == 0)
+            element_set(ss->PK.CR, hv);
+        else
+            element_mul(ss->PK.CR, ss->PK.CR, hv);
+    }
+    element_clear(hv);
+    element_printf("CR====%B\n", ss->PK.CR);
+	element_set(ss->PK.C0, ss->PK.CR);
+	element_set(ss->PK.CU0, ss->PK.CR);
+
 //############### compute H0 how to?? what is H????
 	element_init_G1(ss->H0, pp->pairing);
 	element_init_G1(ths, pp->pairing);
@@ -205,28 +234,34 @@ int vdb_query_paix(element_t paix, struct setup_struct *ss, int x)
 	int q = pp->q;
 
 	mpz_t v;
-	element_t t1, t2;
+	element_t t1;
 
 	element_init_G1(t1, pp->pairing);
-	element_init_G1(t2, pp->pairing);
 	element_init_G1(paix, pp->pairing);
 	int j;
 	mpz_init(v);
+    int first = 0;
 	for(j = 0; j < q; j++)
 		if(j != x)
 		{
 			getX(j, v);
 			element_pow_mpz(t1, pp->hij[x*q+j], v);
-			if(j==0)
+			if(first==0)
+            {
 				element_set(paix, t1);
+
+                first = 1;
+            }
 			else
 			{
-				element_mul(t2, t1, paix);
-				element_set(paix, t2);
+				element_mul(paix, paix, t1);
 
 			}
+            printf("j=%d  ", j);
+            element_printf("--paix=%B hij=%B\n", paix, pp->hij[x*q+j]);
 		}
 	mpz_clear(v);
+    element_clear(t1);
 	return 0;
 }
 
@@ -252,6 +287,9 @@ int vdb_verify(struct setup_struct *ss, int x, struct proof_tao *prf)
 	element_clear(e1);
 	element_clear(e2);
 	element_clear(hs);
+    if(!b1)
+        printf("First equation failed!\n");
+
 
 	//e(GT/HT*hx^vx
 	element_init_GT(e3, pp->pairing);
@@ -262,13 +300,14 @@ int vdb_verify(struct setup_struct *ss, int x, struct proof_tao *prf)
 	mpz_init(v);
 	getX(x, v);
 	element_pow_mpz(hv, pp->hi[x], v);
-	element_div(gh, prf->CT, prf->HT);
+	element_div(gh, ss->PK.C0, prf->HT);
 	element_mul(ghhv, gh, hv);
 	pairing_apply(e3, ghhv, pp->hi[x], pp->pairing);
 
 	//e(paix, g)
 	pairing_apply(e4, prf->paix, pp->g, pp->pairing);
 	//
+    element_printf("e3=%B\ne4=%B\n", e3, e4);
 	b2 = !element_cmp(e3, e4);
 	element_clear(e3);
 	element_clear(e4);
@@ -276,7 +315,8 @@ int vdb_verify(struct setup_struct *ss, int x, struct proof_tao *prf)
 	element_clear(hv);
 	element_clear(ghhv);
 	mpz_clear(v);
-
+    if(!b2)
+        printf("Second equation failed!\n");
 	return b1 && b2;
 
 }
@@ -311,7 +351,7 @@ int vdb_update_client(element_t tpx, struct setup_struct *ss, int x, mpz_t vx,  
 	element_pow_zn(new_HT, hs, ss->SK);  //HT = hs^y
 
 	element_set(tpx, new_HT);			//update paramter
-	element_set(PK->C0, new_CT);
+	element_set(PK->CU0, new_CT);
 	element_set(ss->H0, new_HT);
 	//ss->T = new_T;
 

@@ -20,14 +20,15 @@ struct pk_struct
 	element_t Y;
 	element_t CR;
 	element_t C0;
-	element_t Cf1;
+    element_t CU0;
+	//element_t Cf1;
 };
 
 struct aux_struct
 {
 	element_t H0;
 	element_t Cf1;
-	element_t C0;
+	element_t CU0;
 	int T;
 };
 
