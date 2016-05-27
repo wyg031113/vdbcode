@@ -19,7 +19,8 @@ void test_vdb() //虚拟数据库测试
         mpz_get_str(s, 10, u);
         printf("u=%s\n", s);
     }
-
+    mpz_clear(v);
+    mpz_clear(u);
 }
 
 struct setup_struct ss;
@@ -174,7 +175,7 @@ void test_query(mpz_t v, int x)
 int main(int argc, char *argv[])
 {
     init_db(q);
-    mpz_t iv;
+    /*mpz_t iv;
     mpz_init(iv);
     mpz_set_str(iv, "77777", 10);
     setX(0, iv);
@@ -188,13 +189,12 @@ int main(int argc, char *argv[])
     mpz_set_str(iv, "4424", 10);
     setX(3, iv);
 
-
     //mpz_set_str(iv, "4424", 10);
     //setX(4, iv);
 
     mpz_clear(iv);
+*/
 
-	printf("vdb client running....\n");
 
     printf("Setup...\n");
 	vdb_setup(&ss, q, argc, argv);

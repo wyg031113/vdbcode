@@ -3,6 +3,7 @@
 
 #include "vdb.h"
 #include "simple_db.h"
+void show_mpz(const char *name, mpz_t v);
 void showss(struct setup_struct *ss)
 {
 	struct pp_struct *pp = ss->S.pp;
@@ -189,6 +190,7 @@ int vdb_setup(struct setup_struct *ss, int q, int argc, char *argv[])
         else
             element_mul(ss->PK.CR, ss->PK.CR, hv);
     }
+    mpz_clear(v);
     element_clear(hv);
     element_printf("CR====%B\n", ss->PK.CR);
 	element_set(ss->PK.Cf1, ss->PK.CR);
@@ -202,6 +204,7 @@ int vdb_setup(struct setup_struct *ss, int q, int argc, char *argv[])
 	element_pow_zn(ss->H0, ths, ss->SK);
 	// free z[] and tz
 	element_clear(tz);
+
 	for(i = 0; i < q; i++)
 		element_clear(z[i]);
 	free(z);
@@ -339,7 +342,7 @@ void show_mpz(const char *name, mpz_t v)
 int vdb_update_client(element_t tpx, struct setup_struct *ss, int x, mpz_t vx,  mpz_t new_vx)
 {
 	element_t ch, hv, hv2,  new_CT, hs, new_HT;
-	mpz_t v,zero;
+	mpz_t v;
 
 	struct pk_struct *PK = &ss->PK;
 	struct s_struct *S = &ss->S;
@@ -365,7 +368,7 @@ int vdb_update_client(element_t tpx, struct setup_struct *ss, int x, mpz_t vx,  
 	element_pow_mpz(hv2, pp->hi[x], new_vx); //hv = hx^v
     element_div(hv, hv, hv2);
 
-    element_t tmp;
+    /*element_t tmp;
     element_init_G1(tmp, pp->pairing);
     element_pow_mpz(tmp, pp->hi[x], new_vx);
     element_mul(tmp, tmp, hv);
@@ -376,6 +379,7 @@ int vdb_update_client(element_t tpx, struct setup_struct *ss, int x, mpz_t vx,  
     element_printf("======hv=%B\n", hv);
     printf("x=%d\n", x);
     element_printf("======hi=%B\n", pp->hi[x]);
+    */
 	element_div(new_CT, ch, hv);       //CT=ch * hv
 	element_clear(ch);
 	element_clear(hv);
