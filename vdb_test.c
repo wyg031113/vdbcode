@@ -1,6 +1,15 @@
+/*VDB测试程序 参考
+ * 作者:王永刚
+ * 2016.5.27
+ * email:wyg_0802@126.com
+ */
 #include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
 #include "vdb.h"
-int q = 10;
+
+int q = 100;
 void test_vdb() //虚拟数据库测试
 {
     int i;
@@ -81,8 +90,11 @@ void show_proof(struct proof_tao *t)
     printf("db[x]=%s\n", buf);
     element_printf("Paix=%B\nHT=%B\nCT-1=%B\nCT=%B\n",
                     t->paix, t->HT, t->CTm1, t->CT);
-    printf("T=%d\n", t->T);
+    printf("T=%lld\n", t->T);
 }
+
+/*模拟server执行query的过程
+ */
 void server_query(struct setup_struct *ss, struct proof_tao *t,
                   struct aux_struct *a, int x)
 {
@@ -94,13 +106,18 @@ void server_query(struct setup_struct *ss, struct proof_tao *t,
     vdb_query_paix(t->paix, ss, x);
 }
 
-void test_verify(int x)
+/*模拟客户端验证的过程
+ */
+int test_verify(int x)
 {
-    printf("Test verify.\n");
+   // printf("Test verify.\n");
     int b = vdb_verify(&ss, x,  &tao);
-    printf("verify ret:%d\n", b);
+    //printf("verify ret:%d\n", b);
+    return b;
 }
 
+/*模拟server端进行更新的过程
+ */
 int server_update(struct setup_struct *ss, element_t tx,
                     struct aux_struct *a,  mpz_t vt, int x)
 {
@@ -136,6 +153,9 @@ out:
     return ret;
 
 }
+
+/*客户端发起更新
+ */
 void test_client_update(int x, mpz_t v, mpz_t vt)
 {
     element_t tpx;
@@ -146,6 +166,9 @@ void test_client_update(int x, mpz_t v, mpz_t vt)
     server_update(&ss, tpx, &as, vt, x);
     element_clear(tpx);
 }
+
+/*查询db[x]
+ */
 void test_query(mpz_t v, int x)
 {
 
@@ -162,11 +185,123 @@ void test_query(mpz_t v, int x)
     //setX(1, iv);
     mpz_clear(iv);
 
-    test_verify(x);
 
+}
+#define MAX_LEN 60
+void random_vx(mpz_t vx)
+{
+    char buf[MAX_LEN+1];
+    int len = (rand() % MAX_LEN) + 1;
+    int i;
+    for(i = 0; i < len; i++)
+        buf[i] = rand()%10 + '0';
+    buf[len] = 0;
+    mpz_set_str(vx, buf, 10);
+}
+
+/*模拟初始话过程
+ */
+void test_setup_vdb(int argc, char *argv[])
+{
+    init_db(q);
+    pbc_info("begin Setup...\n");
+	vdb_setup(&ss, q, argc, argv);
+    init_as_tao(&ss, &as, &tao);
+    server_setup(&ss, &as);  //client send H0 to server, server:C0=H0*C0
+	//showss(&ss);
+    ss.S.aux = &as;
+    pbc_info("setup finished!\n");
+
+}
+
+void show_db_data()
+{
+    int i;
+    mpz_t v;
+
+    mpz_init(v);
+    for(i = 0; i < q; i++)
+    {
+        getX(i, v);
+        printf("%d.", i);
+        show_mpz("v=", v);
+    }
+}
+void test_main()
+{
+    int n = 1000;
+    int i;
+    int ret = 0;
+    srand(time(0));
+    mpz_t v, vx, vt;
+
+    mpz_init(v);
+    mpz_init(vx);
+    mpz_init(vt);
+
+    pbc_info("test begin: test case:%d q=%d\n", n, q);
+    for(i = 0; i < n; i++)
+    {
+        int x = rand()%q;
+
+        pbc_info("test %d: x=%d\n", i+1, x);
+        test_query(v,x);
+        ret = test_verify(x);
+        if(!ret)
+        {
+            pbc_info("qeury verify failed!:test=:%d x=%d\n", i, x);
+            exit(-1);
+        }
+        pbc_info("Query and verify OK\n");
+
+        random_vx(vx);
+        test_client_update(x, v, vx);
+        test_query(v,x);
+        ret = test_verify(x);
+        if(!ret)
+        {
+            pbc_info("qeury verify after update failed!:test=:%d x=%d\n", i, x);
+            exit(-1);
+        }
+        pbc_info("query update query and verify OK\n");
+
+        random_vx(vx);
+        test_client_update(x, v, vx);
+        random_vx(vt);
+        setX(x, vt);
+        test_query(v,x);
+        ret = test_verify(x);
+        if(ret)
+        {
+            pbc_info("qeury verify after server change db, must be failed!:test=:%d x=%d\n", i, x);
+            exit(-1);
+        }
+        pbc_info("update modify query and verify OK\n");
+
+        setX(x, vx);
+        test_query(v,x);
+        ret = test_verify(x);
+        if(!ret)
+        {
+            pbc_info("qeury verify after recovery db failed!:test=:%d x=%d\n", i, x);
+            exit(-1);
+        }
+        pbc_info("recovery query and verify OK\n");
+
+        pbc_info("test %d finished!\n", i+1);
+    }
+
+    sleep(1);
+    show_db_data();
+    mpz_clear(v);
+    mpz_clear(vx);
+    mpz_clear(vt);
 }
 int main(int argc, char *argv[])
 {
+    test_setup_vdb(argc, argv);
+    test_main();
+    return 0;
     init_db(q);
     /*mpz_t iv;
     mpz_init(iv);

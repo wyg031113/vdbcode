@@ -2,10 +2,10 @@
 #include <stdio.h>
 #include "simple_db.h"
 static mpz_t *sdb;
-static int db_size;
+static int  db_size;
 int init_db(int size)
 {
-    int i;
+    int  i;
     sdb = malloc(sizeof(mpz_t)*size);
     if(NULL == sdb)
     {
@@ -18,7 +18,7 @@ int init_db(int size)
     return 0;
 }
 
-int getX(int x, mpz_t v)
+int getX(int  x, mpz_t v)
 {
     if(x >= db_size)
     {
@@ -29,7 +29,7 @@ int getX(int x, mpz_t v)
     return 0;
 }
 
-int setX(int x, mpz_t v)
+int setX(int  x, mpz_t v)
 {
     if(x >= db_size)
     {
@@ -44,7 +44,7 @@ int setX(int x, mpz_t v)
 void destroy_db()
 {
     free(sdb);
-    int i;
+    int  i;
     for(i = 0; i < db_size; i++)
         mpz_clear(sdb[i]);
     db_size = 0;

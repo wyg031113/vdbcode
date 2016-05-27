@@ -39,7 +39,7 @@ void showss(struct setup_struct *ss)
  * T is the update times
  * y in ZZp
  */
-int hash(element_t H0, element_t Cf1, element_t C0, int T)
+int hash(element_t H0, element_t Cf1, element_t C0, long long  T)
 {
     int len1 = 0;
     int len2 = 0;
@@ -267,7 +267,9 @@ int vdb_verify(struct setup_struct *ss, int x, struct proof_tao *prf)
 	element_clear(e2);
 	element_clear(hs);
     if(!b1)
-        pbc_warn("First equation failed!\n");
+    {
+    //    pbc_warn("First equation failed!\n");
+    }
 
 
 	//e(GT/HT*hx^vx
@@ -296,8 +298,7 @@ int vdb_verify(struct setup_struct *ss, int x, struct proof_tao *prf)
 	mpz_clear(v);
     if(!b2)
     {
-        element_printf("e3=%B\ne4=%B\n", e3, e4);
-        pbc_warn("Second equation failed!\n");
+    //    pbc_warn("Second equation failed!\n");
     }
 	return b1 && b2;
 
