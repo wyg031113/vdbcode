@@ -71,10 +71,6 @@ void server_setup(struct setup_struct *ss, struct aux_struct *a)
    element_set(a->Cf1, ss->PK.Cf1);
    a->T = 0;
    element_mul(ss->PK.C0, a->H0, ss->PK.CU0);
-
-   printf("AUX:\n");
-   element_printf("H0=%B\nCf1=%B\nCU0=%B\nserver_setup:PK.C0=%B\n",
-                   a->H0, a->Cf1, a->CU0, ss->PK.C0);
 }
 
 void show_proof(struct proof_tao *t)
@@ -96,7 +92,6 @@ void server_query(struct setup_struct *ss, struct proof_tao *t,
     element_set(t->CT, a->CU0);
     t->T = a->T;
     vdb_query_paix(t->paix, ss, x);
-    show_proof(t);
 }
 
 void test_verify(int x)
@@ -148,20 +143,18 @@ void test_client_update(int x, mpz_t v, mpz_t vt)
     ss.T++;
    // element_printf("Before update:v=%B\nVt=%B\n", v, vt);
     vdb_update_client(tpx, &ss, x, v, vt);
-    element_printf("tpx = %B\n", tpx);
     server_update(&ss, tpx, &as, vt, x);
     element_clear(tpx);
 }
 void test_query(mpz_t v, int x)
 {
 
-    printf("test query x = %d\n", x);
     server_query(&ss, &tao, &as, x);
     mpz_set(v, tao.vx);
-    char buf[256];
+    /*char buf[256];
     mpz_get_str(buf, 10, tao.vx);
     printf("db[x]=%s\n", buf);
-
+    */
 
     mpz_t iv;
     mpz_init(iv);
@@ -196,11 +189,11 @@ int main(int argc, char *argv[])
 */
 
 
-    printf("Setup...\n");
+    printf("begin Setup...\n");
 	vdb_setup(&ss, q, argc, argv);
     init_as_tao(&ss, &as, &tao);
     server_setup(&ss, &as);  //client send H0 to server, server:C0=H0*C0
-	showss(&ss);
+	//showss(&ss);
     ss.S.aux = &as;
 
 
@@ -217,7 +210,7 @@ int main(int argc, char *argv[])
     test_client_update(0, v, vt);
 */
 
-    printf("+++++++++++++++++++++++\n");
+    pbc_info("setup finished!\n");
     /*test_query(v, 0);
 
 
