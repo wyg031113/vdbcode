@@ -73,7 +73,8 @@ int hash(element_t H0, element_t Cf1, element_t C0, long long  T)
 inline void getHi(struct pp_struct *p, element_t value, int i)
 {
    // element_set(value, p->hi[i]);
-	element_pow_zn(value, p->g,p->z[i]);
+	element_pow_zn(value, p->g, p->z[i]);
+    //element_printf("p->g=%B z[%d]=%B\n", p->g, i, p->z[i]);
 }
 
 inline void getHij(struct pp_struct *p, element_t value, int i, int j)
@@ -81,7 +82,7 @@ inline void getHij(struct pp_struct *p, element_t value, int i, int j)
    // element_set(value, p->hij[i*p->q+j]);
     element_t mul;
     element_init_Zr(mul, p->pairing);
-    element_mul(mul, p->z[i], p->z[j]);
+    element_mul_zn(mul, p->z[i], p->z[j]);
 	element_pow_zn(value, p->g, mul);
     element_clear(mul);
 }
@@ -160,6 +161,7 @@ int vdb_setup(struct setup_struct *ss, int q, int argc, char *argv[])
 
     pbc_info("Beging compute hi\n");
 
+    pp->z = z;
 	element_pp_init(gpp, pp->g);
 	for(i = 0; i < q; i++)
 	{
@@ -167,8 +169,8 @@ int vdb_setup(struct setup_struct *ss, int q, int argc, char *argv[])
 		element_init_Zr(z[i], pp->pairing);			//let z in ZZr
 		element_random(z[i]);
 		element_pp_pow_zn(pp->hi[i], z[i], gpp);
+
 	}
-    pp->z = z;
 	element_pp_clear(gpp);
 
 	element_init_Zr(tz, pp->pairing);
@@ -208,16 +210,20 @@ int vdb_setup(struct setup_struct *ss, int q, int argc, char *argv[])
 
     mpz_init(v);
     element_init_G1(hv, pp->pairing);
+    element_t hi;
+    element_init_G1(hi, pp->pairing);
     for(i = 0; i < q; i++)
     {
         getX(i, v);
-        element_pow_mpz(hv, pp->hi[i], v);
+        getHi(pp, hi, i);
+
+        element_pow_mpz(hv, hi, v);
         if(i == 0)
             element_set(ss->PK.CR, hv);
         else
             element_mul(ss->PK.CR, ss->PK.CR, hv);
     }
-
+    element_clear(hi);
     mpz_clear(v);
     element_clear(hv);
 	element_set(ss->PK.Cf1, ss->PK.CR);
@@ -231,8 +237,8 @@ int vdb_setup(struct setup_struct *ss, int q, int argc, char *argv[])
 	// free z[] and tz
 	element_clear(tz);
 
-	for(i = 0; i < q; i++)
-		element_clear(z[i]);
+	//for(i = 0; i < q; i++)
+	//	element_clear(z[i]);
 	//free(z);
 	return 0;
 out1:
@@ -265,9 +271,11 @@ int vdb_query_paix(element_t paix, struct setup_struct *ss, int x)
 
 	mpz_t v;
 	element_t t1;
+    element_t hij;
 
 	element_init_G1(t1, pp->pairing);
 	element_init_G1(paix, pp->pairing);
+	element_init_G1(hij, pp->pairing);
 	int j;
 	mpz_init(v);
     int first = 0;
@@ -275,7 +283,8 @@ int vdb_query_paix(element_t paix, struct setup_struct *ss, int x)
 		if(j != x)
 		{
 			getX(j, v);
-			element_pow_mpz(t1, pp->hij[x*q+j], v);
+            getHij(pp, hij, x, j);
+			element_pow_mpz(t1, hij, v);
 			if(first==0)
             {
 				element_set(paix, t1);
@@ -289,6 +298,7 @@ int vdb_query_paix(element_t paix, struct setup_struct *ss, int x)
 			}
 		}
 	mpz_clear(v);
+    element_clear(hij);
     element_clear(t1);
 	return 0;
 }
@@ -331,10 +341,20 @@ int vdb_verify(struct setup_struct *ss, int x, struct proof_tao *prf)
 	mpz_init(v);
 	getX(x, v);
     //mpz_add(v, v, max_integer);
-	element_pow_mpz(hv, pp->hi[x], v);
+    element_t hi;
+    element_init_G1(hi, pp->pairing);
+    getHi(pp, hi, x);
+    if(element_cmp(hi, pp->hi[x]))
+    {
+        printf("Oh, dear!! x= %d\n", x);
+        element_printf("calHi=%B\nhi=%B\n", hi, pp->hi[x]);
+        exit(-1);
+    }
+	element_pow_mpz(hv, hi, v);
 	element_div(gh, ss->PK.C0, prf->HT);
 	element_div(ghhv, gh, hv);
-	pairing_apply(e3, ghhv, pp->hi[x], pp->pairing);
+	pairing_apply(e3, ghhv, hi, pp->pairing);
+    element_clear(hi);
 
 	//e(paix, g)
 	pairing_apply(e4, prf->paix, pp->g, pp->pairing);
@@ -363,7 +383,7 @@ void show_mpz(const char *name, mpz_t v)
 }
 int vdb_update_client(element_t tpx, struct setup_struct *ss, int x, mpz_t vx,  mpz_t new_vx)
 {
-	element_t ch, hv, hv2,  new_CT, hs, new_HT;
+	element_t ch, hv, hv2,  new_CT, hs, new_HT, hi;
 	mpz_t v;
 
 	struct pk_struct *PK = &ss->PK;
@@ -377,11 +397,14 @@ int vdb_update_client(element_t tpx, struct setup_struct *ss, int x, mpz_t vx,  
 	mpz_init(v);
 
 	element_div(ch, PK->C0, ss->H0); //ch = CT-1/HT-1
-	element_pow_mpz(hv, pp->hi[x], vx); //hv = hx^v
-	element_pow_mpz(hv2, pp->hi[x], new_vx); //hv = hx^v
+    element_init_G1(hi, pp->pairing);
+    getHi(pp, hi, x);
+	element_pow_mpz(hv, hi, vx); //hv = hx^v
+	element_pow_mpz(hv2, hi, new_vx); //hv = hx^v
     element_div(hv, hv, hv2);
 	element_div(new_CT, ch, hv);       //CT=ch * hv
 
+    element_clear(hi);
 	element_clear(ch);
 	element_clear(hv);
 	element_clear(hv2);

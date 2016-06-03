@@ -9,7 +9,7 @@
 
 #include "vdb.h"
 
-int q = 50;
+int q = 10;
 void test_vdb() //虚拟数据库测试
 {
     int i;
