@@ -9,7 +9,7 @@
 
 #include "vdb.h"
 
-int q = 10000;
+int q = 1000;
 void test_vdb() //虚拟数据库测试
 {
     int i;
@@ -239,7 +239,7 @@ void test_main()
     mpz_init(vx);
     mpz_init(vt);
     time_t t1, t2, t3, t4;
-    time_t t10, t11;
+    double t10, t11;
     pbc_info("test begin: test case:%d q=%d\n", n, q);
     for(i = 0; i < n; i++)
     {
@@ -247,25 +247,28 @@ void test_main()
 
         pbc_info("test %d: x=%d\n", i+1, x);
 
+        pbc_info("Query and verify test begin....\n");
         t1 = time(NULL);
         t10 = getUsedTime();
         test_query(v,x);
         ret = test_verify(x);
         t11 = getUsedTime();
+        printf("t10=%f t11=%f\n", t10, t11);
         if(!ret)
         {
             pbc_info("qeury verify failed!:test=:%d x=%d\n", i, x);
             exit(-1);
         }
         t2 = time(NULL);
-        pbc_info("Query and verify OK. use %d seconds. but %d second in select database\n", t2-t1, t11-t10);
+        printf("Query and verify OK. use %lu seconds.\n", t2-t1);
 
+        pbc_info("Update query and verify test begin....\n");
         //random_vx(vx);
         updateX(x);
         getX(x, vx);
         test_client_update(x, v, vx);
         t3 = time(NULL);
-        pbc_info("update OK. use %d seconds\n", t3-t2);
+        pbc_info("update OK. use %lu seconds\n", t3-t2);
         test_query(v,x);
         //updateX((x+1)%q);
         ret = test_verify(x);
@@ -274,7 +277,8 @@ void test_main()
             pbc_info("qeury verify after update failed!:test=%d x=%d\n", i, x);
             exit(-1);
         }
-        pbc_info("query update query and verify OK\n");
+        t4 = time(NULL);
+        pbc_info("query update query and verify OK. used time:%lu seconds.\n", t4 - t3);
 /*
         //random_vx(vx);
         updateX(x);
@@ -312,7 +316,7 @@ void test_main()
         }
         pbc_info("recovery query and verify OK\n");
 */
-        pbc_info("test %d/%d finished!\n", i+1, n);
+        pbc_info("test %d/%d finished!\n\n", i+1, n);
     }
 
     sleep(1);
@@ -327,7 +331,7 @@ int main(int argc, char *argv[])
     time_t t1 = time(NULL);
     test_setup_vdb(argc, argv);
     time_t t2 = time(NULL);
-    printf("setup use time: %d seconds\n", t2-t1);
+    printf("setup use time: %lu seconds\n", t2-t1);
     test_main();
     return 0;
     init_db(q);

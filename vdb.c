@@ -3,6 +3,7 @@
 
 #include "vdb.h"
 #include "simple_db.h"
+#include <time.h>
 void show_mpz(const char *name, mpz_t v);
 void showss(struct setup_struct *ss)
 {
@@ -159,7 +160,7 @@ int vdb_setup(struct setup_struct *ss, int q, int argc, char *argv[])
 	element_init_G1(pp->g, pp->pairing);		//let g be a generator of G1
 	element_random(pp->g);
 
-    pbc_info("Beging compute hi\n");
+    pbc_info("Beging compute hi...\n");
 
     pp->z = z;
 	element_pp_init(gpp, pp->g);
@@ -171,6 +172,7 @@ int vdb_setup(struct setup_struct *ss, int q, int argc, char *argv[])
 //		element_pp_pow_zn(pp->hi[i], z[i], gpp);
 
 	}
+    pbc_info("Compute hi finished!\n");
 	element_pp_clear(gpp);
 
 	element_init_Zr(tz, pp->pairing);
@@ -214,6 +216,8 @@ int vdb_setup(struct setup_struct *ss, int q, int argc, char *argv[])
     element_init_G1(hv, pp->pairing);
     element_t hi;
     element_init_G1(hi, pp->pairing);
+    pbc_info("Beging compute init CR.\n");
+    clock_t t = clock();
     for(i = 0; i < q; i++)
     {
         getX(i, v);
@@ -225,6 +229,8 @@ int vdb_setup(struct setup_struct *ss, int q, int argc, char *argv[])
         else
             element_mul(ss->PK.CR, ss->PK.CR, hv);
     }
+    //printf("t=%lu, now=%lu CPS=%lu diff=%f\n", t, clock(), CLOCKS_PER_SEC, (clock()-t)*1.0/CLOCKS_PER_SEC);
+    printf("Beging compute init CR finished, use: %lf seconds!\n", (clock()-t)*1.0/CLOCKS_PER_SEC);
     element_clear(hi);
     mpz_clear(v);
     element_clear(hv);
@@ -281,6 +287,7 @@ int vdb_query_paix(element_t paix, struct setup_struct *ss, int x)
 	int j;
 	mpz_init(v);
     int first = 0;
+    clock_t t = clock();
 	for(j = 0; j < q; j++)
 		if(j != x)
 		{
@@ -299,6 +306,7 @@ int vdb_query_paix(element_t paix, struct setup_struct *ss, int x)
 
 			}
 		}
+    printf("prepaired proof pai, used times %f seconds.\n", (clock()-t)*1.0/CLOCKS_PER_SEC);
 	mpz_clear(v);
     element_clear(hij);
     element_clear(t1);

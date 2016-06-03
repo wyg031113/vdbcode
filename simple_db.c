@@ -1,5 +1,8 @@
 #include <pbc/pbc.h>
+#include <unistd.h>
+#include <sys/time.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <mysql/mysql.h>
 #include <openssl/sha.h>
 #include "simple_db.h"
@@ -8,18 +11,20 @@
 static mpz_t *sdb;
 static int  db_size;
 char user[] = "root";
-char passwd[] = /*"letmein";*/"admin";
+char passwd[] = "letmein";//"admin";
 char db[] = "dbtest";
-char host[]=/*"127.0.0.1";*/"101.201.47.53";
+char host[]="127.0.0.1";//"101.201.47.53";
 unsigned short port = 3306;
 char *unix_socket = NULL;
 unsigned long client_flag = 0;
 char table[] = "plain_tb_test";
 MYSQL *conn;
-static time_t used_time = 0;
-time_t getUsedTime()
+double used_time = 0;
+double getUsedTime()
 {
-    return used_time;
+    //double f = used_time*1.0/CLOCKS_PER_SEC;
+    //printf("Use %ld clocks f = %f\n", used_time, f);
+    return used_time/1000;
 }
 int init_db(int size)
 {
@@ -61,7 +66,9 @@ int hash_rows(char *md, char** row, unsigned long *lens, int nrow)
 int getX(int  x, mpz_t v)
 {
     int ret = 0;
-    time_t t = time(NULL);
+    struct timeval tvafter,tvpre;
+    struct timezone tz;
+    gettimeofday (&tvpre , &tz);
     if(x >= db_size)
     {
         printf("getX: db index outof range! db_size=%d indeX=%d\n", db_size, x);
@@ -116,7 +123,8 @@ int getX(int  x, mpz_t v)
     //printf("SHA1=%s\n", md_str);
     mpz_set_str(v, md_str, 16);
     mysql_free_result(res);
-    used_time += time(NULL) - t;
+    gettimeofday (&tvafter , &tz);
+    used_time += (tvafter.tv_sec-tvpre.tv_sec)*1000+(tvafter.tv_usec-tvpre.tv_usec)/1000.0;
     return 0;
 
 }
