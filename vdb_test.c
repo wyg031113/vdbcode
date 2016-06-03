@@ -9,7 +9,7 @@
 
 #include "vdb.h"
 
-int q = 100;
+int q = 10000;
 void test_vdb() //虚拟数据库测试
 {
     int i;
@@ -238,26 +238,34 @@ void test_main()
     mpz_init(v);
     mpz_init(vx);
     mpz_init(vt);
-
+    time_t t1, t2, t3, t4;
+    time_t t10, t11;
     pbc_info("test begin: test case:%d q=%d\n", n, q);
     for(i = 0; i < n; i++)
     {
         int x = rand()%q;
 
         pbc_info("test %d: x=%d\n", i+1, x);
+
+        t1 = time(NULL);
+        t10 = getUsedTime();
         test_query(v,x);
         ret = test_verify(x);
+        t11 = getUsedTime();
         if(!ret)
         {
             pbc_info("qeury verify failed!:test=:%d x=%d\n", i, x);
             exit(-1);
         }
-        pbc_info("Query and verify OK\n");
+        t2 = time(NULL);
+        pbc_info("Query and verify OK. use %d seconds. but %d second in select database\n", t2-t1, t11-t10);
 
         //random_vx(vx);
         updateX(x);
         getX(x, vx);
         test_client_update(x, v, vx);
+        t3 = time(NULL);
+        pbc_info("update OK. use %d seconds\n", t3-t2);
         test_query(v,x);
         //updateX((x+1)%q);
         ret = test_verify(x);
@@ -316,7 +324,10 @@ void test_main()
 }
 int main(int argc, char *argv[])
 {
+    time_t t1 = time(NULL);
     test_setup_vdb(argc, argv);
+    time_t t2 = time(NULL);
+    printf("setup use time: %d seconds\n", t2-t1);
     test_main();
     return 0;
     init_db(q);

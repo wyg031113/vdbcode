@@ -72,7 +72,7 @@ int hash(element_t H0, element_t Cf1, element_t C0, long long  T)
 
 inline void getHi(struct pp_struct *p, element_t value, int i)
 {
-   // element_set(value, p->hi[i]);
+//    element_set(value, p->hi[i]);
 	element_pow_zn(value, p->g, p->z[i]);
     //element_printf("p->g=%B z[%d]=%B\n", p->g, i, p->z[i]);
 }
@@ -168,7 +168,7 @@ int vdb_setup(struct setup_struct *ss, int q, int argc, char *argv[])
 		element_init_G1(pp->hi[i], pp->pairing);
 		element_init_Zr(z[i], pp->pairing);			//let z in ZZr
 		element_random(z[i]);
-	//	element_pp_pow_zn(pp->hi[i], z[i], gpp);
+//		element_pp_pow_zn(pp->hi[i], z[i], gpp);
 
 	}
 	element_pp_clear(gpp);

@@ -8,14 +8,19 @@
 static mpz_t *sdb;
 static int  db_size;
 char user[] = "root";
-char passwd[] = "admin";
+char passwd[] = "letmein";//"admin";
 char db[] = "dbtest";
-char host[]="101.201.47.53";
+char host[]="127.0.0.1";//"101.201.47.53";
 unsigned short port = 3306;
 char *unix_socket = NULL;
 unsigned long client_flag = 0;
 char table[] = "plain_tb_test";
 MYSQL *conn;
+static time_t used_time = 0;
+time_t getUsedTime()
+{
+    return used_time;
+}
 int init_db(int size)
 {
     int  i;
@@ -56,6 +61,7 @@ int hash_rows(char *md, char** row, unsigned long *lens, int nrow)
 int getX(int  x, mpz_t v)
 {
     int ret = 0;
+    time_t t = time(NULL);
     if(x >= db_size)
     {
         printf("getX: db index outof range! db_size=%d indeX=%d\n", db_size, x);
@@ -110,6 +116,7 @@ int getX(int  x, mpz_t v)
     //printf("SHA1=%s\n", md_str);
     mpz_set_str(v, md_str, 16);
     mysql_free_result(res);
+    used_time += time(NULL) - t;
     return 0;
 
 }
