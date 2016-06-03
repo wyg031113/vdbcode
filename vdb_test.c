@@ -288,7 +288,18 @@ void test_main()
         }
         pbc_info("recovery query and verify OK\n");
 
-        pbc_info("test %d finished!\n", i+1);
+        int t = rand()%q;
+        setX(x, vx);
+        test_query(v,x);
+        ret = test_verify(x);
+        if(!ret)
+        {
+            pbc_info("qeury verify after recovery db failed!:test=:%d x=%d\n", i, x);
+            exit(-1);
+        }
+        pbc_info("recovery query and verify OK\n");
+
+        pbc_info("test %d/%d finished!\n", i+1, n);
     }
 
     sleep(1);
@@ -303,6 +314,7 @@ int main(int argc, char *argv[])
     test_main();
     return 0;
     init_db(q);
+    updateX(2);
     /*mpz_t iv;
     mpz_init(iv);
     mpz_set_str(iv, "77777", 10);

@@ -70,7 +70,50 @@ int hash(element_t H0, element_t Cf1, element_t C0, long long  T)
 	return 0;
 }
 
+inline void getHi(struct pp_struct *p, element_t value, int i)
+{
+    element_set(value, p->hi[i]);
+}
 
+inline void getHij(struct pp_struct *p, element_t value, int i, int j)
+{
+    element_set(value, p->hij[i*p->q+j]);
+}
+
+inline void setHi(struct pp_struct *p, element_t value, int i)
+{
+    element_set(p->hi[i], value);
+}
+
+inline void setHij(struct pp_struct *p, element_t value, int i, int j)
+{
+    element_set(p->hij[i*p->q+j], value);
+}
+int init_Hi(struct pp_struct *p)
+{
+	p->hi = malloc(sizeof(element_t) * p->q);
+	if(NULL == p->hi)
+        return -1;
+    return 0;
+}
+int init_Hij(struct pp_struct *p)
+{
+	p->hij = malloc(sizeof(element_t)*p->q*p->q);
+	if(NULL == p->hij)
+        return -1;
+    return 0;
+}
+void destroy_Hi(struct pp_struct *p)
+{
+    free(p->hi);
+    p->hi = NULL;
+}
+
+void destroy_Hij(struct pp_struct *p)
+{
+    free(p->hij);
+    p->hij = NULL;
+}
 int vdb_setup(struct setup_struct *ss, int q, int argc, char *argv[])
 {
 	int i, j;
@@ -94,15 +137,15 @@ int vdb_setup(struct setup_struct *ss, int q, int argc, char *argv[])
 	if(NULL == pp)
 		goto out4;
 
-	pp->hi = malloc(sizeof(element_t) * q);
-	if(NULL == pp->hi)
+    pp->q = q;
+	//pp->hi = malloc(sizeof(element_t) * q);
+	if(0 != init_Hi(pp))
 		goto out3;
 
-	pp->hij = malloc(sizeof(element_t)*q*q);
-	if(pp->hij == NULL)
+	//pp->hij = malloc(sizeof(element_t)*q*q);
+	if(0 != init_Hij(pp))
 		goto out2;
 
-	pp->q = q;
 
 	pbc_demo_pairing_init(pp->pairing, argc, argv); //init G1 G2
 

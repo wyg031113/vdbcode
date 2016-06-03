@@ -3,5 +3,6 @@
 int init_db(int size);
 int getX(int x, mpz_t v);
 int setX(int x, mpz_t v);
+int updateX(int x);
 void destroy_db();
 #endif /*__SIMPLE_DB_H__*/
