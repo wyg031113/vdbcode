@@ -346,12 +346,14 @@ int vdb_verify(struct setup_struct *ss, int x, struct proof_tao *prf)
     element_t hi;
     element_init_G1(hi, pp->pairing);
     getHi(pp, hi, x);
+    /*
     if(element_cmp(hi, pp->hi[x]))
     {
         printf("Oh, dear!! x= %d\n", x);
         element_printf("calHi=%B\nhi=%B\n", hi, pp->hi[x]);
         exit(-1);
     }
+    */
 	element_pow_mpz(hv, hi, v);
 	element_div(gh, ss->PK.C0, prf->HT);
 	element_div(ghhv, gh, hv);
