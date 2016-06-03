@@ -8,9 +8,9 @@
 static mpz_t *sdb;
 static int  db_size;
 char user[] = "root";
-char passwd[] = "letmein";//"admin";
+char passwd[] = /*"letmein";*/"admin";
 char db[] = "dbtest";
-char host[]="127.0.0.1";//"101.201.47.53";
+char host[]=/*"127.0.0.1";*/"101.201.47.53";
 unsigned short port = 3306;
 char *unix_socket = NULL;
 unsigned long client_flag = 0;
