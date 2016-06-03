@@ -72,12 +72,18 @@ int hash(element_t H0, element_t Cf1, element_t C0, long long  T)
 
 inline void getHi(struct pp_struct *p, element_t value, int i)
 {
-    element_set(value, p->hi[i]);
+   // element_set(value, p->hi[i]);
+	element_pow_zn(value, p->g,p->z[i]);
 }
 
 inline void getHij(struct pp_struct *p, element_t value, int i, int j)
 {
-    element_set(value, p->hij[i*p->q+j]);
+   // element_set(value, p->hij[i*p->q+j]);
+    element_t mul;
+    element_init_Zr(mul, p->pairing);
+    element_mul(mul, p->z[i], p->z[j]);
+	element_pow_zn(value, p->g, mul);
+    element_clear(mul);
 }
 
 inline void setHi(struct pp_struct *p, element_t value, int i)
@@ -162,6 +168,7 @@ int vdb_setup(struct setup_struct *ss, int q, int argc, char *argv[])
 		element_random(z[i]);
 		element_pp_pow_zn(pp->hi[i], z[i], gpp);
 	}
+    pp->z = z;
 	element_pp_clear(gpp);
 
 	element_init_Zr(tz, pp->pairing);
@@ -226,7 +233,7 @@ int vdb_setup(struct setup_struct *ss, int q, int argc, char *argv[])
 
 	for(i = 0; i < q; i++)
 		element_clear(z[i]);
-	free(z);
+	//free(z);
 	return 0;
 out1:
 	free(pp->hij);
@@ -235,7 +242,7 @@ out2:
 out3:
 	free(pp);
 out4:
-	free(z);
+	//free(z);
 out5:
 	return -1;
 }

@@ -46,9 +46,11 @@ int hash_rows(char *md, char** row, unsigned long *lens, int nrow)
     for(i = 0; i < nrow; i++)
         SHA_Update(&stx, row[i], lens[i]);
     SHA_Final(md, &stx);
+    /*
     for(i = 0; i < 20; i++)
         printf("%02x", (unsigned char)md[i]);
     printf("\n");
+    */
     return 0;
 }
 int getX(int  x, mpz_t v)
@@ -66,7 +68,7 @@ int getX(int  x, mpz_t v)
             table, x+1);
     ret = mysql_query(conn, sql/*"select * from plain_db_test limit 1"*/);
 
-    printf("Query database sql=%s, ret=%d!\n",sql, ret);
+    //printf("Query database sql=%s, ret=%d!\n",sql, ret);
     if(ret)
     {
         printf("Query data base failed ret=%d\n", ret);
@@ -87,20 +89,26 @@ int getX(int  x, mpz_t v)
         exit(-1);
     }
     unsigned long *lens = mysql_fetch_lengths(res);
-    printf("field_count=%d\n", res->field_count);
+    //printf("field_count=%d\n", res->field_count);
     if(lens == NULL)
     {
         mysql_free_result(res);
         printf("error:column lengths == NULL!\n");
     }
     int i;
-    for(i = 0; i < res->field_count; i++)
+    /*for(i = 0; i < res->field_count; i++)
     {
         printf("column:%d len=%lu\n", i, lens[i]);
-    }
-    printf("%s %s\n", row[0], row[1]);
+    }*/
+   // printf("%s %s\n", row[0], row[1]);
     char md[128];
+    char md_str[256];
+    int len = 0;
     hash_rows(md, row, lens, res->field_count);
+    for(i = 0; i < 20 && len < 256; i++, len+=2)
+        snprintf(md_str+len, 3, "%02x", (unsigned char)md[i]);
+    //printf("SHA1=%s\n", md_str);
+    mpz_set_str(v, md_str, 16);
     mysql_free_result(res);
     return 0;
 
@@ -126,7 +134,7 @@ int updateX(int x)
     for(i = 0; i < 5; i++)
         buf[i] = 'a' + rand()%26;
     buf[6] = 0;
-    snprintf(sql, 255, "update plain_tb_test set Family='%s' where id=%d", buf, x);
+    snprintf(sql, 255, "update plain_tb_test set Family='%s' where id=%d", buf, x+1);
     ret = mysql_query(conn, sql/*"select * from plain_db_test limit 1"*/);
     printf("update Query database ret=%d!\n", ret);
     return ret;

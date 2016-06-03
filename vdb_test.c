@@ -9,7 +9,7 @@
 
 #include "vdb.h"
 
-int q = 100;
+int q = 50;
 void test_vdb() //虚拟数据库测试
 {
     int i;
@@ -119,14 +119,14 @@ int test_verify(int x)
 /*模拟server端进行更新的过程
  */
 int server_update(struct setup_struct *ss, element_t tx,
-                    struct aux_struct *a,  mpz_t vt, int x)
+                    struct aux_struct *a, mpz_t v,  mpz_t vt, int x)
 {
     int ret = 0;
     element_t tpx;
     element_t CT;
-    mpz_t v;
-    mpz_init(v);
-    getX(x, v);
+    //mpz_t v;
+    //mpz_init(v);
+    //getX(x, v);
     element_init_G1(tpx, ss->PK.pp->pairing);
     element_init_G1(CT, ss->PK.pp->pairing);
    /* vdb_update_client(tpx, ss, x, v, vt);
@@ -149,7 +149,7 @@ int server_update(struct setup_struct *ss, element_t tx,
 out:
     element_clear(tpx);
     element_clear(CT);
-    mpz_clear(v);
+    //mpz_clear(v);
     return ret;
 
 }
@@ -163,7 +163,7 @@ void test_client_update(int x, mpz_t v, mpz_t vt)
     ss.T++;
    // element_printf("Before update:v=%B\nVt=%B\n", v, vt);
     vdb_update_client(tpx, &ss, x, v, vt);
-    server_update(&ss, tpx, &as, vt, x);
+    server_update(&ss, tpx, &as, v, vt, x);
     element_clear(tpx);
 }
 
@@ -229,7 +229,7 @@ void show_db_data()
 }
 void test_main()
 {
-    int n = 1000;
+    int n = 100;
     int i;
     int ret = 0;
     srand(time(0));
@@ -254,18 +254,23 @@ void test_main()
         }
         pbc_info("Query and verify OK\n");
 
-        random_vx(vx);
+        //random_vx(vx);
+        updateX(x);
+        getX(x, vx);
         test_client_update(x, v, vx);
         test_query(v,x);
+        //updateX((x+1)%q);
         ret = test_verify(x);
         if(!ret)
         {
-            pbc_info("qeury verify after update failed!:test=:%d x=%d\n", i, x);
+            pbc_info("qeury verify after update failed!:test=%d x=%d\n", i, x);
             exit(-1);
         }
         pbc_info("query update query and verify OK\n");
-
-        random_vx(vx);
+/*
+        //random_vx(vx);
+        updateX(x);
+        getX(x, vx);
         test_client_update(x, v, vx);
         random_vx(vt);
         setX(x, vt);
@@ -298,11 +303,12 @@ void test_main()
             exit(-1);
         }
         pbc_info("recovery query and verify OK\n");
-
+*/
         pbc_info("test %d/%d finished!\n", i+1, n);
     }
 
     sleep(1);
+    printf("###################################################\n");
     show_db_data();
     mpz_clear(v);
     mpz_clear(vx);

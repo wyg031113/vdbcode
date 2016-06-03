@@ -11,6 +11,7 @@ struct pp_struct
 	pairing_t pairing;
 	element_t *hi;
 	element_t *hij;
+    element_t *z;
 	//H ???
 };
 
