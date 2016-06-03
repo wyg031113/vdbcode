@@ -168,7 +168,7 @@ int vdb_setup(struct setup_struct *ss, int q, int argc, char *argv[])
 		element_init_G1(pp->hi[i], pp->pairing);
 		element_init_Zr(z[i], pp->pairing);			//let z in ZZr
 		element_random(z[i]);
-		element_pp_pow_zn(pp->hi[i], z[i], gpp);
+	//	element_pp_pow_zn(pp->hi[i], z[i], gpp);
 
 	}
 	element_pp_clear(gpp);
@@ -176,6 +176,7 @@ int vdb_setup(struct setup_struct *ss, int q, int argc, char *argv[])
 	element_init_Zr(tz, pp->pairing);
 
 	//element_pp_t gpp;
+    /*
 	element_pp_init(gpp, pp->g);
 	pbc_info("Begin compute hij\n");
 	for(i = 0; i < q; i++)
@@ -190,6 +191,7 @@ int vdb_setup(struct setup_struct *ss, int q, int argc, char *argv[])
 
 		}
 	element_pp_clear(gpp);
+    */
 	pbc_info("end compute hij\n");
 
     ss->PK.pp =  ss->S.pp = pp;
