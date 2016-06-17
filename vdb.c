@@ -214,24 +214,35 @@ int vdb_setup(struct setup_struct *ss, int q, int argc, char *argv[])
 
     mpz_init(v);
     element_init_G1(hv, pp->pairing);
-    element_t hi;
-    element_init_G1(hi, pp->pairing);
+    //element_t hi;
+    //element_init_G1(hi, pp->pairing);
     pbc_info("Beging compute init CR.\n");
     clock_t t = clock();
+    element_t t1;
+    element_t t2;
+	element_init_Zr(t1, pp->pairing);
+	element_init_Zr(t2, pp->pairing);
     for(i = 0; i < q; i++)
     {
         getX(i, v);
-        getHi(pp, hi, i);
+        //getHi(pp, hi, i);
 
-        element_pow_mpz(hv, hi, v);
+        element_mul_mpz(t1, pp->z[i], v);
+        //element_pow_mpz(hv, hi, v);
         if(i == 0)
-            element_set(ss->PK.CR, hv);
+         //   element_set(ss->PK.CR, hv);
+              element_set(t2, t1);
         else
-            element_mul(ss->PK.CR, ss->PK.CR, hv);
+            //element_mul(ss->PK.CR, ss->PK.CR, hv);
+            element_add(t2, t2, t1);
     }
+
+    element_pow_zn(ss->PK.CR,  pp->g, t2);
     //printf("t=%lu, now=%lu CPS=%lu diff=%f\n", t, clock(), CLOCKS_PER_SEC, (clock()-t)*1.0/CLOCKS_PER_SEC);
     printf("Beging compute init CR finished, use: %lf seconds!\n", (clock()-t)*1.0/CLOCKS_PER_SEC);
-    element_clear(hi);
+    //element_clear(hi);
+    element_clear(t1);
+    element_clear(t2);
     mpz_clear(v);
     element_clear(hv);
 	element_set(ss->PK.Cf1, ss->PK.CR);
@@ -280,10 +291,12 @@ int vdb_query_paix(element_t paix, struct setup_struct *ss, int x)
 	mpz_t v;
 	element_t t1;
 	element_t t2;
+	element_t t3;
     element_t hij;
 
 	element_init_G1(t1, pp->pairing);
 	element_init_Zr(t2, pp->pairing);
+	element_init_Zr(t3, pp->pairing);
 	element_init_G1(paix, pp->pairing);
 	element_init_G1(hij, pp->pairing);
 	int j;
@@ -297,26 +310,31 @@ int vdb_query_paix(element_t paix, struct setup_struct *ss, int x)
             //getHij(pp, hij, x, j);
             element_mul_zn(t2, pp->z[x], pp->z[j]);
             element_mul_mpz(t2, t2, v);
-			element_pow_zn(t1, pp->g, t2);
+		//	element_pow_zn(t1, pp->g, t2);
 		//	element_pow_mpz(t1, t1, v);
 			//element_pow_mpz(t1, hij, v);
 			if(first==0)
             {
-				element_set(paix, t1);
-
+				//element_set(paix, t1);
+                element_set(t3, t2);
                 first = 1;
             }
 			else
 			{
-				element_mul(paix, paix, t1);
+		//		element_mul(paix, paix, t1);
+                element_add(t3, t3, t2);
 
 			}
 		}
+
+	element_pow_zn(paix, pp->g, t3);
+
     printf("prepaired proof pai, used times %f seconds.\n", (clock()-t)*1.0/CLOCKS_PER_SEC);
 	mpz_clear(v);
     element_clear(hij);
     element_clear(t1);
     element_clear(t2);
+    element_clear(t3);
 	return 0;
 }
 
