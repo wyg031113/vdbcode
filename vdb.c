@@ -279,9 +279,11 @@ int vdb_query_paix(element_t paix, struct setup_struct *ss, int x)
 
 	mpz_t v;
 	element_t t1;
+	element_t t2;
     element_t hij;
 
 	element_init_G1(t1, pp->pairing);
+	element_init_Zr(t2, pp->pairing);
 	element_init_G1(paix, pp->pairing);
 	element_init_G1(hij, pp->pairing);
 	int j;
@@ -292,8 +294,12 @@ int vdb_query_paix(element_t paix, struct setup_struct *ss, int x)
 		if(j != x)
 		{
 			getX(j, v);
-            getHij(pp, hij, x, j);
-			element_pow_mpz(t1, hij, v);
+            //getHij(pp, hij, x, j);
+            element_mul_zn(t2, pp->z[x], pp->z[j]);
+            element_mul_mpz(t2, t2, v);
+			element_pow_zn(t1, pp->g, t2);
+		//	element_pow_mpz(t1, t1, v);
+			//element_pow_mpz(t1, hij, v);
 			if(first==0)
             {
 				element_set(paix, t1);
@@ -310,6 +316,7 @@ int vdb_query_paix(element_t paix, struct setup_struct *ss, int x)
 	mpz_clear(v);
     element_clear(hij);
     element_clear(t1);
+    element_clear(t2);
 	return 0;
 }
 

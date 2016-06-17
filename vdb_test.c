@@ -9,7 +9,7 @@
 
 #include "vdb.h"
 
-int q = 1000;
+int q = 10000;
 void test_vdb() //虚拟数据库测试
 {
     int i;
@@ -269,6 +269,8 @@ void test_main()
         test_client_update(x, v, vx);
         t3 = time(NULL);
         pbc_info("update OK. use %lu seconds\n", t3-t2);
+
+        pbc_info("verify after update...\n");
         test_query(v,x);
         //updateX((x+1)%q);
         ret = test_verify(x);

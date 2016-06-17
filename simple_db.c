@@ -24,7 +24,8 @@ double getUsedTime()
 {
     //double f = used_time*1.0/CLOCKS_PER_SEC;
     //printf("Use %ld clocks f = %f\n", used_time, f);
-    return used_time/1000;
+    double f =  used_time/1000;
+    return f;
 }
 int init_db(int size)
 {
