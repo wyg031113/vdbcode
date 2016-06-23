@@ -45,6 +45,7 @@ int init_db(int size)
                 port, unix_socket, client_flag)))
     {
         printf("connect mysql server failed!\n");
+        exit(-1);
     }
     printf("connect mysql success!\n");
     return 0;
