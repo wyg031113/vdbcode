@@ -101,14 +101,20 @@ int init_Hi(struct pp_struct *p)
 {
 	p->hi = malloc(sizeof(element_t) * p->q);
 	if(NULL == p->hi)
-        return -1;
+    {
+        printf("malloc failed in init_hi.\n");
+        exit(-1);
+    }
     return 0;
 }
 int init_Hij(struct pp_struct *p)
 {
 	p->hij = malloc(sizeof(element_t)*p->q*p->q);
 	if(NULL == p->hij)
-        return -1;
+    {
+        printf("malloc failed in init_hi.\n");
+        exit(-1);
+    }
     return 0;
 }
 void destroy_Hi(struct pp_struct *p)
