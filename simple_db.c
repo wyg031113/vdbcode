@@ -150,7 +150,7 @@ int updateX(int x)
     int i, ret;
     for(i = 0; i < 5; i++)
         buf[i] = 'a' + rand()%26;
-    buf[6] = 0;
+    buf[5] = 0;
     snprintf(sql, 255, "update plain_tb_test set Family='%s' where id=%d", buf, x+1);
     ret = mysql_query(conn, sql/*"select * from plain_db_test limit 1"*/);
     printf("update Query database ret=%d!\n", ret);
