@@ -1,9 +1,10 @@
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 #include "vdb.h"
 #include "simple_db.h"
-#include <time.h>
+#include "save_param.h"
 void show_mpz(const char *name, mpz_t v);
 void showss(struct setup_struct *ss)
 {
@@ -73,14 +74,16 @@ int hash(element_t H0, element_t Cf1, element_t C0, long long  T)
 
 inline void getHi(struct pp_struct *p, element_t value, int i)
 {
-//    element_set(value, p->hi[i]);
+   element_set(value, p->hi[i]);
+   return;
 	element_pow_zn(value, p->g, p->z[i]);
     //element_printf("p->g=%B z[%d]=%B\n", p->g, i, p->z[i]);
 }
 
 inline void getHij(struct pp_struct *p, element_t value, int i, int j)
 {
-   // element_set(value, p->hij[i*p->q+j]);
+   element_set(value, p->hij[i*p->q+j]);
+   return;
     element_t mul;
     element_init_Zr(mul, p->pairing);
     element_mul_zn(mul, p->z[i], p->z[j]);
@@ -128,6 +131,7 @@ void destroy_Hij(struct pp_struct *p)
     free(p->hij);
     p->hij = NULL;
 }
+int sstatus = 2;
 int vdb_setup(struct setup_struct *ss, int q, int argc, char *argv[])
 {
 	int i, j;
@@ -164,42 +168,99 @@ int vdb_setup(struct setup_struct *ss, int q, int argc, char *argv[])
 	pbc_demo_pairing_init(pp->pairing, argc, argv); //init G1 G2
 
 	element_init_G1(pp->g, pp->pairing);		//let g be a generator of G1
-	element_random(pp->g);
-
+    if(sstatus == 2 && read_g(pp->g)==0)
+    {
+        pbc_info("Read g from file!\n");
+    }
+    else
+    {
+    	element_random(pp->g);
+        if(save_g(pp->g) != 0)
+        {
+            pbc_die("Save g to file failed!\n");
+            return -1;
+        }
+        pbc_info("Select g, and write to file!\n");
+    }
     pbc_info("Beging compute hi...\n");
 
     pp->z = z;
 	element_pp_init(gpp, pp->g);
+
+    int max_hi_len = 0;
 	for(i = 0; i < q; i++)
 	{
 		element_init_G1(pp->hi[i], pp->pairing);
-		element_init_Zr(z[i], pp->pairing);			//let z in ZZr
-		element_random(z[i]);
-//		element_pp_pow_zn(pp->hi[i], z[i], gpp);
+        if(sstatus == 1)
+        {
+            element_init_Zr(z[i], pp->pairing);			//let z in ZZr
+		    element_random(z[i]);
+            //pbc_info("n=%d\n", n);
+		    element_pp_pow_zn(pp->hi[i], z[i], gpp);
+            int n = element_length_in_bytes(pp->hi[i]);
+            int nc = element_length_in_bytes_compressed(pp->hi[i]);
+            max_hi_len = nc > max_hi_len ? nc : max_hi_len;
+        }
 
 	}
+    if(sstatus == 2)
+    {
+        if(read_hi(pp->hi, q) !=0)
+            pbc_die("read hi failed!\n");
+
+        pbc_info("read hi from file!\n");
+    }
+    else
+    {
+        if(save_hi(pp->hi, q, max_hi_len) !=0)
+            pbc_die("save hi failed!\n");
+        pbc_info("save hi to file!\n");
+    }
     pbc_info("Compute hi finished!\n");
 	element_pp_clear(gpp);
 
 	element_init_Zr(tz, pp->pairing);
 
 	//element_pp_t gpp;
-    /*
+
 	element_pp_init(gpp, pp->g);
 	pbc_info("Begin compute hij\n");
+    int max_hij_len = 0;
 	for(i = 0; i < q; i++)
-		for(j = i+1; j < q; j++)
+		for(j = i; j < q; j++)
 		{
 			element_init_G1(pp->hij[i*q+j], pp->pairing);
 			element_init_G1(pp->hij[j*q+i], pp->pairing);
 
-			element_mul_zn(tz, z[i],z[j]);
-			element_pp_pow_zn(pp->hij[i*q+j], tz, gpp);
-			element_set(pp->hij[j*q+i], pp->hij[i*q+j]);
+            if(sstatus == 1)
+            {
+			    element_mul_zn(tz, z[i],z[j]);
+		    	element_pp_pow_zn(pp->hij[i*q+j], tz, gpp);
+			    element_set(pp->hij[j*q+i], pp->hij[i*q+j]);
+                int n = element_length_in_bytes(pp->hij[i*q+j]);
+                int nc =  element_length_in_bytes_compressed(pp->hij[i*q+j]);
+//                printf("n=%d nc=%d\n", n, nc);
+                max_hij_len = nc > max_hij_len ? nc : max_hij_len;
+            }
 
 		}
+
+    if(sstatus == 2)
+    {
+        if(read_hij(pp->hij, q) !=0)
+            pbc_die("read hi failed!\n");
+
+        pbc_info("read hi from file!\n");
+    }
+    else
+    {
+        if(save_hij(pp->hij, q, max_hi_len) !=0)
+            pbc_die("save hi failed!\n");
+        pbc_info("save hi to file!\n");
+    }
+
 	element_pp_clear(gpp);
-    */
+
 	pbc_info("end compute hij\n");
 
     ss->PK.pp =  ss->S.pp = pp;
@@ -300,12 +361,13 @@ int vdb_query_paix(element_t paix, struct setup_struct *ss, int x)
 		if(j != x)
 		{
 			getX(j, v);
-            //getHij(pp, hij, x, j);
-            element_mul_zn(t2, pp->z[x], pp->z[j]);
+            getHij(pp, hij, x, j);
+           /* element_mul_zn(t2, pp->z[x], pp->z[j]);
             element_mul_mpz(t2, t2, v);
 			element_pow_zn(t1, pp->g, t2);
+            */
 		//	element_pow_mpz(t1, t1, v);
-			//element_pow_mpz(t1, hij, v);
+			element_pow_mpz(t1, hij, v);
 			if(first==0)
             {
 				element_set(paix, t1);

@@ -2,7 +2,7 @@ all:vdb_test
 CC=gcc
 CFLAGS=-ggdb3
 LIBS=-lpbc -lgmp -lmysqlclient -lcrypto
-vdb_test_c=vdb.c vdb_test.c simple_db.c
+vdb_test_c=vdb.c vdb_test.c simple_db.c save_param.c
 #vdb:vdb.c
 #	$(CC) $(CFLAGS) $< $(LIBS) -o $@
 
