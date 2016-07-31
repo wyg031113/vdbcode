@@ -281,7 +281,7 @@ int save_hij(element_t *hij, int q, int max_len)
     return 0;
 }
 
-int read_hij(element_t *hij, int q)
+int read_hij(element_t *hij, int q, const char *fname)
 {
     int i;
     int j;
@@ -289,7 +289,7 @@ int read_hij(element_t *hij, int q)
     if(NULL == hij || q <=0)
         pbc_die("Bad param in save hi\n");
 
-    FILE *fp = fopen(hij_file,"rb");
+    FILE *fp = fopen(fname,"rb");
     if(NULL == fp)
     {
         pbc_die("error: open file %s failed!\n", hi_file);
@@ -343,7 +343,7 @@ int save_int(int q, const char *fname)
         pbc_die("error: open file %s failed!\n", fname);
         return -1;
     }
-    int ret = fprintf(fp, "%d", q);//fwrite(&q, sizeof(q), 1, fp);
+    int ret = fprintf(fp, "%d\n", q);//fwrite(&q, sizeof(q), 1, fp);
     if(ret <0)
     {
         pbc_die("error:write  to file %s failed!\n", fname);

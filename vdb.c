@@ -247,7 +247,7 @@ int vdb_setup(struct setup_struct *ss, int q, int argc, char *argv[])
 
     if(sstatus == 2)
     {
-        if(read_hij(pp->hij, q) !=0)
+        if(read_hij(pp->hij, q, "param/hij") !=0)
             pbc_die("read hi failed!\n");
 
         pbc_info("read hi from file!\n");

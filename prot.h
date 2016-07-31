@@ -5,6 +5,12 @@
 #define T_FILE_HIJ 2
 #define T_QUERY 3
 #define T_FILE_RECVD 4
+#define T_FILE_T 5
+#define T_FILE_CU0 6
+#define T_FILE_Cf1 7
+#define T_FILE_H0 8
+#define T_FILE_C0 9
+
 struct packet
 {
     int type;

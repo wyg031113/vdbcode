@@ -18,6 +18,12 @@ struct proof_tao tao;
 static char serip[17]="127.0.0.1";
 static unsigned short port = 7788;
 static char hij_file[FILE_NAME_LEN] = "./param/hij";
+static char q_file[FILE_NAME_LEN] = "./param/q";
+static char C0_file[FILE_NAME_LEN] = "./param/C0";
+static char CU0_file[FILE_NAME_LEN] = "./param/CU0";
+static char Cf1_file[FILE_NAME_LEN] = "./param/Cf1";
+static char H0_file[FILE_NAME_LEN] = "./param/H0";
+static char T_file[FILE_NAME_LEN] = "./param/T";
 int connect_server()
 {
     int ser = -1;
@@ -40,7 +46,7 @@ int connect_server()
     return ser;
 }
 
-int send_hij(int fd, int type, const char *file_name)
+int send_any(int fd, int type, const char *file_name)
 {
     struct packet pkt;
     pkt.type = type;
@@ -69,9 +75,30 @@ int send_param_file(int fd, int type)
     switch(type)
     {
         case T_FILE_Q:
+            return send_any(fd, T_FILE_Q, T_file);
             break;
         case T_FILE_HIJ:
-            return send_hij(fd, T_FILE_HIJ, hij_file);
+            return send_any(fd, T_FILE_HIJ, hij_file);
+            break;
+
+        case T_FILE_H0:
+            return send_any(fd, T_FILE_H0, H0_file);
+            break;
+
+        case T_FILE_Cf1:
+            return send_any(fd, T_FILE_Cf1, Cf1_file);
+            break;
+
+        case T_FILE_C0:
+            return send_any(fd, T_FILE_C0, C0_file);
+            break;
+
+        case T_FILE_CU0:
+            return send_any(fd, T_FILE_CU0, CU0_file);
+            break;
+
+        case T_FILE_T:
+            return send_any(fd, T_FILE_T, T_file);
             break;
         default:
             return -1;
@@ -155,7 +182,7 @@ int vdb_init_read(struct setup_struct *ss,int *tq,  int argc, char *argv[])
 
 		}
 
-    if(read_hij(pp->hij, q) !=0)
+    if(read_hij(pp->hij, q, hij_file) !=0)
         pbc_die("read hij failed!\n");
      pbc_info("read hij from file!\n");
 
@@ -353,6 +380,8 @@ int vdb_init_save(struct setup_struct *ss, int q, int argc, char *argv[])
 	element_init_G1(ths, pp->pairing);
 	hash(ths, ss->PK.CR, ss->PK.C0, 0);
 	element_pow_zn(ss->H0, ths, ss->SK);
+
+   element_mul(ss->PK.C0, ss->H0, ss->PK.CU0);
 	// free z[] and tz
 	element_clear(tz);
 
@@ -367,9 +396,10 @@ int vdb_init_save(struct setup_struct *ss, int q, int argc, char *argv[])
     save_ele(ss->PK.CU0, "param/CU0");
     save_ele(ss->PK.Y, "param/Y");
     save_ele(ss->SK, "param/SK");
-	//for(i = 0; i < q; i++)
-	//	element_clear(z[i]);
-	//free(z);
+    save_ele(ss->PK.C0, "param/C0");
+	for(i = 0; i < q; i++)
+		element_clear(z[i]);
+	free(z);
     printf("save finished!\n");
 	return 0;
 out1:
@@ -384,16 +414,32 @@ out5:
 	return -1;
 }
 
-int main()
+void init_vdb(int q)
 {
-    //int sd = connect_server();
-    int q = 100;
-    //send_param_file(sd, T_FILE_HIJ);
-    //sleep(2);
-    //close(sd);
     init_db(q);
     char *gv[3]={"main","param/a.param", NULL};
     vdb_init_save(&ss, q, 2, gv);
-    vdb_init_read(&ss, &q, 2, gv);
+    int sd = connect_server();
+    send_param_file(sd, T_FILE_HIJ);
+    send_param_file(sd, T_FILE_T);
+    send_param_file(sd, T_FILE_CU0);
+    send_param_file(sd, T_FILE_Cf1);
+    send_param_file(sd, T_FILE_H0);
+    send_param_file(sd, T_FILE_C0);
+    send_param_file(sd, T_FILE_Q);
+    sleep(2);
+    close(sd);
+
+
+}
+void read_vdb(int *q)
+{
+    char *gv[3]={"main","param/a.param", NULL};
+    vdb_init_read(&ss, q, 2, gv);
+}
+int main()
+{
+    int q = 100;
+    init_vdb(q);
     return 0;
 }

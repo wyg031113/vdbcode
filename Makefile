@@ -3,7 +3,7 @@ CC=gcc
 CFLAGS=-ggdb3
 LIBS=-lpbc -lgmp -lmysqlclient -lcrypto
 vdb_test_c=vdb.c vdb_test.c simple_db.c save_param.c
-vdb_server_c=vdb_server.c io.c
+vdb_server_c=vdb_server.c io.c simple_db.c save_param.c vdb.c
 vdb_client_c=vdb_client.c io.c simple_db.c save_param.c vdb.c
 #vdb:vdb.c
 #	$(CC) $(CFLAGS) $< $(LIBS) -o $@
