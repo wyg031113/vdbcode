@@ -201,11 +201,17 @@ void random_vx(mpz_t vx)
 
 /*模拟初始话过程
  */
+int vdb_init_read(struct setup_struct *ss,int *tq,  int argc, char *argv[]);
 void test_setup_vdb(int argc, char *argv[])
 {
-    init_db(q);
+   // init_db(q);
     pbc_info("begin Setup...\n");
-	vdb_setup(&ss, q, argc, argv);
+	//vdb_setup(&ss, q, argc, argv);
+    char *gv[3]={"main","param/a.param", NULL};
+
+    vdb_init_read(&ss, &q, 2, gv);
+    init_db(q);
+
     init_as_tao(&ss, &as, &tao);
     server_setup(&ss, &as);  //client send H0 to server, server:C0=H0*C0
 	//showss(&ss);
@@ -227,6 +233,137 @@ void show_db_data()
         show_mpz("v=", v);
     }
 }
+
+//----------------------------------------------------------
+int vdb_init_read(struct setup_struct *ss,int *tq,  int argc, char *argv[])
+{
+	int i, j, q = 0;
+	element_t *z;
+	element_t tz;
+	element_t ths;
+    element_t hv;
+	element_pp_t gpp;
+    mpz_t v;
+	struct pp_struct *pp;
+    read_int(&q, "param/q");
+    *tq = q;
+	memset(ss, 0, sizeof(struct setup_struct));
+	ss->T = 0;
+
+	z = malloc(sizeof(element_t) * q);
+	if(NULL == z)
+		goto out5;
+
+
+	pp = malloc(sizeof(struct pp_struct));
+	if(NULL == pp)
+		goto out4;
+
+    pp->q = q;
+	//pp->hi = malloc(sizeof(element_t) * q);
+	if(0 != init_Hi(pp))
+		goto out3;
+
+	//pp->hij = malloc(sizeof(element_t)*q*q);
+	if(0 != init_Hij(pp))
+		goto out2;
+
+
+	pbc_demo_pairing_init(pp->pairing, argc, argv); //init G1 G2
+
+	element_init_G1(pp->g, pp->pairing);		//let g be a generator of G1
+    if(read_g(pp->g) != 0)
+    {
+        pbc_die("read g to file failed!\n");
+        return -1;
+    }
+    pbc_info("read g from file!\n");
+
+    pbc_info("Beging compute hi...\n");
+
+    pp->z = z;
+	element_pp_init(gpp, pp->g);
+
+	for(i = 0; i < q; i++)
+	{
+		element_init_G1(pp->hi[i], pp->pairing);
+        element_init_Zr(z[i], pp->pairing);			//let z in ZZr
+		element_random(z[i]);
+        //pbc_info("n=%d\n", n);
+
+	}
+    if(read_hi(pp->hi, q) !=0)
+        pbc_die("read hi failed!\n");
+    pbc_info("read hi from file!\n");
+	element_pp_clear(gpp);
+
+	element_init_Zr(tz, pp->pairing);
+
+	//element_pp_t gpp;
+
+	element_pp_init(gpp, pp->g);
+	pbc_info("Begin load hij\n");
+	for(i = 0; i < q; i++)
+		for(j = i; j < q; j++)
+		{
+			element_init_G1(pp->hij[i*q+j], pp->pairing);
+			element_init_G1(pp->hij[j*q+i], pp->pairing);
+
+		}
+
+    if(read_hij(pp->hij, q) !=0)
+        pbc_die("read hij failed!\n");
+     pbc_info("read hij from file!\n");
+
+	element_pp_clear(gpp);
+
+
+    ss->PK.pp =  ss->S.pp = pp;
+
+	//random chose y==SK
+	element_init_Zr(ss->SK, pp->pairing);
+
+	//compute Y
+	element_init_G1(ss->PK.Y, pp->pairing);
+
+	//CR in G1 初始：CR=Cs0=Cf1=
+	element_init_G1(ss->PK.CR, pp->pairing);
+	element_init_G1(ss->PK.C0, pp->pairing);
+	element_init_G1(ss->PK.Cf1, pp->pairing);
+	element_init_G1(ss->PK.CU0, pp->pairing);
+
+
+//############### compute H0 how to?? what is H????
+	element_init_G1(ss->H0, pp->pairing);
+	element_init_G1(ths, pp->pairing);
+
+    //save all
+    read_int(&(ss->T), "param/T");
+    read_ele(ss->H0, "param/H0");
+    read_ele(ss->SK, "param/SK");
+    read_ele(ss->PK.CR, "param/CR");
+    read_ele(ss->PK.C0, "param/C0");
+    read_ele(ss->PK.Cf1, "param/Cf1");
+    read_ele(ss->PK.CU0, "param/CU0");
+    read_ele(ss->PK.Y, "param/Y");
+    read_ele(ss->SK, "param/SK");
+	//for(i = 0; i < q; i++)
+	//	element_clear(z[i]);
+	//free(z);
+    printf("read finished!\n");
+	return 0;
+out1:
+	free(pp->hij);
+out2:
+	free(pp->hi);
+out3:
+	free(pp);
+out4:
+	//free(z);
+out5:
+	return -1;
+}
+//------------------------------------------------------------
 void test_main()
 {
     int n = 100;
@@ -285,7 +422,7 @@ void test_main()
         //random_vx(vx);
         updateX(x);
         getX(x, vx);
-        test_client_update(x, v, vx);
+        //test_client_update(x, v, vx);
         random_vx(vt);
         setX(x, vt);
         test_query(v,x);
@@ -331,7 +468,7 @@ void test_main()
 int main(int argc, char *argv[])
 {
     time_t t1 = time(NULL);
-    test_setup_vdb(argc, argv);
+       test_setup_vdb(argc, argv);
     time_t t2 = time(NULL);
     printf("setup use time: %lu seconds\n", t2-t1);
     test_main();

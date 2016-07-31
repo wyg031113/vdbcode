@@ -5,10 +5,66 @@
 #include "save_param.h"
 #define FILE_NAME_LEN
 char g_file[FILE_NAME_LEN]="./param/g";
+char q_file[FILE_NAME_LEN]="./param/q";
 char hi_file[FILE_NAME_LEN]="./param/hi";
 char hij_file[FILE_NAME_LEN]="./param/hij";
 #define ELEMENT_MAX_LEN 2048
 char buf[ELEMENT_MAX_LEN];
+
+int save_ele(element_t g, const char *fname)
+{
+
+    int n = element_length_in_bytes(g);
+    int ret;
+    if(n > ELEMENT_MAX_LEN)
+    {
+        pbc_die("element %s too long.\n", fname);
+        return -1;
+    }
+    if(element_to_bytes(buf, g) != n)
+    {
+        pbc_die("element_to_btyes %s failed!\n", fname);
+        return -1;
+    }
+    FILE *fp = fopen(fname,"wb");
+    if(NULL == fp)
+    {
+        pbc_die("error: open file %s failed!\n", fname);
+        return -1;
+    }
+    ret = fwrite(buf, n, 1, fp);
+    if(ret != 1)
+    {
+        pbc_die("error:write %s to file  failed!\n", fname);
+        return -1;
+    }
+    fclose(fp);
+    return 0;
+}
+int read_ele(element_t g, const char *fname)
+{
+    FILE *fp = fopen(fname,"rb");
+    int ret;
+    if(NULL == fp)
+    {
+        return -1;
+    }
+    ret = fread(buf, 1, ELEMENT_MAX_LEN, fp);
+    if(ret <=0 )
+    {
+        //pbc_die("error:write g to file %s failed!\n", g_file);
+        return -1;
+    }
+    fclose(fp);
+    ret = element_from_bytes(g, buf);
+    if(ret <= 0)
+    {
+        return -1;
+    }
+    return 0;
+}
+
+
 int save_g(element_t g)
 {
 
@@ -279,3 +335,41 @@ int read_hij(element_t *hij, int q)
     return 0;
 }
 
+int save_int(int q, const char *fname)
+{
+    FILE *fp = fopen(fname,"w");
+    if(NULL == fp)
+    {
+        pbc_die("error: open file %s failed!\n", fname);
+        return -1;
+    }
+    int ret = fprintf(fp, "%d", q);//fwrite(&q, sizeof(q), 1, fp);
+    if(ret <0)
+    {
+        pbc_die("error:write  to file %s failed!\n", fname);
+        return -1;
+    }
+    fclose(fp);
+    return 0;
+
+}
+
+int read_int(int *q, const char *fname)
+{
+    FILE *fp = fopen(fname,"r");
+    *q= - 1;
+    if(NULL == fp)
+    {
+        pbc_die("error: open file %s failed!\n", fname);
+        return -1;
+    }
+    int ret = fscanf(fp, "%d", q);//fread(q, sizeof(*q), 1, fp);
+    if(*q==-1)
+    {
+        pbc_die("error:read  to file %s failed!\n", fname);
+        return -1;
+    }
+    fclose(fp);
+    return 0;
+
+}

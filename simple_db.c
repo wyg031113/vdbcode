@@ -48,6 +48,13 @@ int init_db(int size)
         exit(-1);
     }
     printf("connect mysql success!\n");
+    /*printf("Begin init mysql hash data.\n");
+
+    mpz_t v;
+    mpz_init(v);
+    for(i = 0; i < size; i++)
+        getX(i,v);
+        */
     return 0;
 }
 int hash_rows(char *md, char** row, unsigned long *lens, int nrow)

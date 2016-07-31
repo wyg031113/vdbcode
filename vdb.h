@@ -7,7 +7,7 @@ struct pp_struct
 {
 	element_t p;
 	element_t g;
-	long long q;
+	int q;
 	pairing_t pairing;
 	element_t *hi;
 	element_t *hij;
@@ -30,7 +30,7 @@ struct aux_struct
 	element_t H0;
 	element_t Cf1;
 	element_t CU0;
-	long long T;
+	int T;
 };
 
 struct s_struct
@@ -47,7 +47,7 @@ struct setup_struct
 	struct s_struct S;
 	element_t SK;
 	element_t H0;
-	long long  T;
+	int  T;
 };
 
 struct proof_tao
