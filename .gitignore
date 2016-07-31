@@ -6,3 +6,5 @@ vdb_test
 *.o
 tags
 cscope.out
+sparam
+param
