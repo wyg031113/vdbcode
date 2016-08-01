@@ -176,10 +176,10 @@ int updateX(int x)
 }
 void destroy_db()
 {
-    free(sdb);
     int  i;
     for(i = 0; i < db_size; i++)
         mpz_clear(sdb[i]);
+    free(sdb);
     db_size = 0;
     mysql_close(conn);
 
