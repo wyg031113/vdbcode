@@ -12,6 +12,7 @@
 #include "vdb.h"
 #include "simple_db.h"
 
+int g_client;
 struct setup_struct ss;
 struct aux_struct as;
 struct proof_tao tao;
@@ -603,12 +604,12 @@ int vdb_send_hxj(int fd, int q,  int x)
     int i,j;
     char buf[256];
 
-    int n = pairing_length_in_bytes_compressed_G1(pp->pairing);
+    int n = pairing_length_in_bytes_G1(pp->pairing);
 
     if(n>256)
         return -1;
 
-    send_header(fd, T_HIJ, n*(x-1));
+    send_header(fd, T_HIJ, n*(q-1));
 
     element_init_G1(hxj, ss.S.pp->pairing);
     element_init_Zr(tz, ss.S.pp->pairing);
@@ -622,7 +623,9 @@ int vdb_send_hxj(int fd, int q,  int x)
 			element_mul_zn(tz, pp->z[i], pp->z[j]);
 		    element_pp_pow_zn(hxj, tz, gpp);
             memset(buf, 0, n);
-            element_to_bytes_compressed(buf, hxj);
+            int hi_len = element_to_bytes(buf, hxj);
+            //printf("hi_len=%d, n=%d i,j %d %d\n", hi_len, n, i, j);
+            //element_printf("%B\n", hxj);
             if(write_all(fd, buf, n) != n)
             {
                 ret = -1;
@@ -662,6 +665,13 @@ int vdb_query(int q, int x)
         close(sd);
         return -1;
     }
+    if(vdb_send_hxj(sd, q,x))
+    {
+        printf("Send hxj failed!\n");
+        close(sd);
+        return -1;
+    }
+
 
     /*memset(buf, 0, sizeof(buf));
     int ret = read_all_s(sd, buf, 1024);

@@ -57,8 +57,8 @@ int vdb_init_read(struct setup_struct *ss,int *tq,  int argc, char *argv[])
 		goto out3;
 */
 	//pp->hij = malloc(sizeof(element_t)*q*q);
-	if(0 != init_Hij(pp))
-		goto out2;
+	//if(0 != init_Hij(pp))
+	//	goto out2;
 
 
 	pbc_demo_pairing_init(pp->pairing, argc, argv); //init G1 G2
@@ -94,7 +94,7 @@ int vdb_init_read(struct setup_struct *ss,int *tq,  int argc, char *argv[])
 	//element_pp_t gpp;
 
 	//element_pp_init(gpp, pp->g);
-	pbc_info("Begin load hij\n");
+	/*pbc_info("Begin load hij\n");
 	for(i = 0; i < q; i++)
 		for(j = i; j < q; j++)
 		{
@@ -106,7 +106,7 @@ int vdb_init_read(struct setup_struct *ss,int *tq,  int argc, char *argv[])
     if(read_hij(pp->hij, q, hij_file) !=0)
         pbc_die("read hij failed!\n");
      pbc_info("read hij from file!\n");
-
+*/
 	//element_pp_clear(gpp);
 
 
@@ -224,10 +224,12 @@ static char rcv_buf[BUF_SIZE];
 
 int be_reload = 1;
 int be_inited = 0;
+int g_client = -1;
 
 int handle_query(int fd, struct packet *pkt)
 {
     int x = 0;
+    g_client = fd;
     if(pkt->len != sizeof(x))
     {
         printf("x len error!\n");
@@ -238,6 +240,13 @@ int handle_query(int fd, struct packet *pkt)
         printf("receive x failed!\n");
         return 0;
     }
+    struct packet header_hij;
+    if(read_all(fd,(char*)&header_hij, sizeof(header_hij)) != sizeof(header_hij))
+    {
+        printf("receive header hij failed!\n");
+        return 0;
+    }
+
     if(x >=q || x <0)
     {
         printf("x is out of range!\n");

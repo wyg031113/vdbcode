@@ -90,7 +90,20 @@ inline void getHij(struct pp_struct *p, element_t value, int i, int j)
 	element_pow_zn(value, p->g, mul);
     element_clear(mul);
 }
+static char hbuf[1024];
+extern int g_client;
+int getHij_fd(struct pp_struct *p, element_t value, int i, int j)
+{
+    int n = pairing_length_in_bytes_G1(p->pairing);
+    memset(hbuf,0, n);
+    if(read_all(g_client, hbuf, n) != n)
+        return -1;
+    element_from_bytes(value, hbuf);
+    //printf("n=%d get hij:%d %d\n", n, i, j);
+    //element_printf("%B\n", value);
+    return 0;
 
+}
 inline void setHi(struct pp_struct *p, element_t value, int i)
 {
     element_set(p->hi[i], value);
@@ -337,6 +350,7 @@ out5:
 /*pair = |-|(h(x,j) ^ vj)  j in 1 to q and j != x
  *
  */
+int getHij_fd(struct pp_struct *p, element_t value, int i, int j);
 int vdb_query_paix(element_t paix, struct setup_struct *ss, int x)
 {
 	struct pk_struct *PK = &ss->PK;
@@ -365,7 +379,8 @@ int vdb_query_paix(element_t paix, struct setup_struct *ss, int x)
                 ret = -1;
                 goto out;
             }
-            getHij(pp, hij, x, j);
+            if(getHij_fd(pp, hij, x, j) != 0)
+                goto out;
            /* element_mul_zn(t2, pp->z[x], pp->z[j]);
             element_mul_mpz(t2, t2, v);
 			element_pow_zn(t1, pp->g, t2);

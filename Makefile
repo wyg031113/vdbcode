@@ -1,4 +1,4 @@
-all:vdb_test vdb_server vdb_client
+all:vdb_server vdb_client
 CC=gcc
 CFLAGS=-ggdb3
 LIBS=-lpbc -lgmp -lmysqlclient -lcrypto
