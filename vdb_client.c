@@ -27,6 +27,7 @@ static char H0_file[FILE_NAME_LEN] = "./param/H0";
 static char T_file[FILE_NAME_LEN] = "./param/T";
 static char Prog_file[FILE_NAME_LEN] = "./param/Prog";
 static char ver_file[FILE_NAME_LEN] = "./param/ver";
+static char mysql_conf_file[FILE_NAME_LEN] = "./param/mysql_conf";
 int connect_server()
 {
     int ser = -1;
@@ -492,7 +493,7 @@ int get_prog()
 
 int init_vdb(int q)
 {
-    init_db(q);
+    init_db(q, mysql_conf_file);
     char *gv[3]={"main","param/a.param", NULL};
     int ret = P_UNINIT;
     if(get_prog()==P_UNINIT)
@@ -679,7 +680,8 @@ int query(int x)
     int q = 0;
     save_int(Q_ING, ver_file);
     read_vdb(&q);
-    init_db(q);
+    printf("Database size:%d rows.\n", q);
+    init_db(q, mysql_conf_file);
     if(vdb_query(q, x) == 1)
     {
         save_int(Q_SUCCESS, ver_file);
@@ -701,7 +703,7 @@ int main(int argc, char *argv[])
     int be_query = 0;
     int x = -1;
     int opt;
-    while((opt = getopt(argc, argv, "in:qx:")) != -1)
+    while((opt = getopt(argc, argv, "in:qx:s:p:")) != -1)
     {
         switch(opt){
             case 'i':
@@ -715,6 +717,12 @@ int main(int argc, char *argv[])
                 break;
             case 'x':
                 x = atoi(optarg);
+                break;
+            case 's':
+                strncpy(serip, optarg, 17);
+                break;
+            case 'p':
+                port = atoi(optarg);
                 break;
             default:
                 fprintf(stderr,"Usage: vdb_client [-i -n 100] [-q -x 23]\n");

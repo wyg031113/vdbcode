@@ -20,6 +20,8 @@ static char Cf1_file[FILE_NAME_LEN] = "./sparam/Cf1";
 static char H0_file[FILE_NAME_LEN] = "./sparam/H0";
 static char T_file[FILE_NAME_LEN] = "./sparam/T";
 static char Prog_file[FILE_NAME_LEN] = "./sparam/Prog";
+static char port_file[FILE_NAME_LEN] = "./sparam/port";
+static char mysql_conf_file[FILE_NAME_LEN] = "./sparam/mysql_conf";
 struct setup_struct ss;
 struct aux_struct as;
 struct proof_tao tao;
@@ -375,9 +377,10 @@ static void reload()
         {
             printf("Re init database.\n");
             destroy_db();
-            init_db(q);
+            init_db(q, mysql_conf_file);
         }
     }
+    read_int(&port, port_file);
     be_reload = 0;
 }
 void run_server(int fd)
@@ -402,7 +405,7 @@ int main()
 {
     be_inited = get_prog();
     reload();
-    init_db(q);
+    init_db(q, mysql_conf_file);
     run_server(start_listen());
     return 0;
 }

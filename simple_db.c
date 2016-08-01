@@ -10,14 +10,14 @@
 #define MAX_SQL_LEN 1024
 static mpz_t *sdb;
 static int  db_size;
-char user[] = "root";
-char passwd[] = "letmein";//"admin";
-char db[] = "dbtest";
-char host[]="127.0.0.1";//"101.201.47.53";
+char user[128] = "root";
+char passwd[128] = "letmein";//"admin";
+char db[128] = "dbtest";
+char host[128]="127.0.0.1";//"101.201.47.53";
 unsigned short port = 3306;
 char *unix_socket = NULL;
 unsigned long client_flag = 0;
-char table[] = "plain_tb_test";
+char table[128] = "plain_tb_test";
 MYSQL *conn;
 double used_time = 0;
 double getUsedTime()
@@ -27,9 +27,20 @@ double getUsedTime()
     double f =  used_time/1000;
     return f;
 }
-int init_db(int size)
+int init_db(int size, const char *config_file)
 {
     int  i;
+    FILE *fp = fopen(config_file, "r");
+    int pt = 0;
+    if(fp == NULL)
+    {
+        printf("open myslq config file:%s failed!\n", config_file);
+        exit(-1);
+    }
+    fscanf(fp, "%s%d%s%s%s%s", host, &pt, user, passwd, db, table);
+    port = pt;
+    fclose(fp);
+
     sdb = malloc(sizeof(mpz_t)*size);
     if(NULL == sdb)
     {
@@ -158,7 +169,7 @@ int updateX(int x)
     for(i = 0; i < 5; i++)
         buf[i] = 'a' + rand()%26;
     buf[5] = 0;
-    snprintf(sql, 255, "update plain_tb_test set Family='%s' where id=%d", buf, x+1);
+    snprintf(sql, 255, "update %s set Family='%s' where id=%d",table,  buf, x+1);
     ret = mysql_query(conn, sql/*"select * from plain_db_test limit 1"*/);
     printf("update Query database ret=%d!\n", ret);
     return ret;
