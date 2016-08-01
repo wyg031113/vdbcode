@@ -24,6 +24,8 @@ static char CU0_file[FILE_NAME_LEN] = "./param/CU0";
 static char Cf1_file[FILE_NAME_LEN] = "./param/Cf1";
 static char H0_file[FILE_NAME_LEN] = "./param/H0";
 static char T_file[FILE_NAME_LEN] = "./param/T";
+static char Prog_file[FILE_NAME_LEN] = "./param/Prog";
+static char ver_file[FILE_NAME_LEN] = "./param/Prog";
 int connect_server()
 {
     int ser = -1;
@@ -46,6 +48,19 @@ int connect_server()
     return ser;
 }
 
+int send_header(int fd, int type, int len)
+{
+    struct packet pkt;
+    pkt.type = type;
+    pkt.len = len;
+    if(write_all(fd, (char *)&pkt, sizeof(pkt)) != sizeof(pkt))
+    {
+        printf("write header hij file failed!\n");
+        return -1;
+    }
+    return 0;
+
+}
 int send_any(int fd, int type, const char *file_name)
 {
     struct packet pkt;
@@ -61,6 +76,7 @@ int send_any(int fd, int type, const char *file_name)
         printf("write header hij file failed!\n");
         return -1;
     }
+
     if(send_file(fd, file_name, pkt.len) != pkt.len)
     {
         printf("write hij file content failed!\n");
@@ -75,7 +91,7 @@ int send_param_file(int fd, int type)
     switch(type)
     {
         case T_FILE_Q:
-            return send_any(fd, T_FILE_Q, T_file);
+            return send_any(fd, T_FILE_Q, q_file);
             break;
         case T_FILE_HIJ:
             return send_any(fd, T_FILE_HIJ, hij_file);
@@ -105,6 +121,43 @@ int send_param_file(int fd, int type)
     }
     return -1;
 }
+
+/*初始化证据tao和附加信息aux
+ */
+void init_as_tao(struct setup_struct *s,
+                 struct aux_struct *a,
+                 struct proof_tao *t)
+{
+    struct pp_struct *pp = s->PK.pp;
+    element_init_G1(a->H0, pp->pairing);
+    element_init_G1(a->Cf1, pp->pairing);
+    element_init_G1(a->CU0, pp->pairing);
+    a->T = 0;
+
+    mpz_init(t->vx);
+    element_init_G1(t->paix, pp->pairing);
+    element_init_G1(t->HT, pp->pairing);
+    element_init_G1(t->CTm1, pp->pairing);
+    element_init_G1(t->CT, pp->pairing);
+    t->T  = 0;
+}
+
+/*销毁证据tao和附加信息aux
+ */
+void destroy_as_tao(struct aux_struct *a,
+                    struct proof_tao *t)
+{
+    element_clear(a->H0);
+    element_clear(a->Cf1);
+    element_clear(a->CU0);
+
+    mpz_clear(t->vx);
+    element_clear(t->paix);
+    element_clear(t->HT);
+    element_clear(t->CTm1);
+    element_clear(t->CT);
+}
+
 
 int vdb_init_read(struct setup_struct *ss,int *tq,  int argc, char *argv[])
 {
@@ -172,7 +225,7 @@ int vdb_init_read(struct setup_struct *ss,int *tq,  int argc, char *argv[])
 
 	//element_pp_t gpp;
 
-	element_pp_init(gpp, pp->g);
+	/*element_pp_init(gpp, pp->g);
 	pbc_info("Begin load hij\n");
 	for(i = 0; i < q; i++)
 		for(j = i; j < q; j++)
@@ -188,7 +241,7 @@ int vdb_init_read(struct setup_struct *ss,int *tq,  int argc, char *argv[])
 
 	element_pp_clear(gpp);
 
-
+*/
     ss->PK.pp =  ss->S.pp = pp;
 
 	//random chose y==SK
@@ -413,33 +466,223 @@ out4:
 out5:
 	return -1;
 }
+void save_prog(int status)
+{
+    if(save_int(status, Prog_file)!= 0)
+    {
+        printf("Save status failed!\n");
+        exit(-1);
+    }
 
-void init_vdb(int q)
+}
+int get_prog()
+{
+    int status = 0;
+    if(read_int(&status, Prog_file)!= 0)
+    {
+        printf("Save status failed!\n");
+        save_prog(P_UNINIT);
+        return P_UNINIT;
+    }
+    return status;
+
+}
+
+
+int init_vdb(int q)
 {
     init_db(q);
     char *gv[3]={"main","param/a.param", NULL};
-    vdb_init_save(&ss, q, 2, gv);
+    int ret = P_UNINIT;
+    if(get_prog()==P_UNINIT)
+    {
+        save_prog(P_UNINIT);
+        if(vdb_init_save(&ss, q, 2, gv) ==0)
+            save_prog(P_INITING);
+        else
+        {
+            printf("vdb init save failed!\n");
+            exit(-1);
+        }
+    }
     int sd = connect_server();
-    send_param_file(sd, T_FILE_HIJ);
-    send_param_file(sd, T_FILE_T);
-    send_param_file(sd, T_FILE_CU0);
-    send_param_file(sd, T_FILE_Cf1);
-    send_param_file(sd, T_FILE_H0);
-    send_param_file(sd, T_FILE_C0);
-    send_param_file(sd, T_FILE_Q);
+    ret  = P_INITING;
+    if(
+    !send_param_file(sd, T_FILE_HIJ) &&
+    !send_param_file(sd, T_FILE_T) &&
+    !send_param_file(sd, T_FILE_CU0) &&
+    !send_param_file(sd, T_FILE_Cf1) &&
+    !send_param_file(sd, T_FILE_H0) &&
+    !send_param_file(sd, T_FILE_C0) &&
+    !send_param_file(sd, T_FILE_Q) &&
+    !send_header(sd, T_FINISH, 0) )
+        ret = P_FINISH;
+    save_prog(ret);
     sleep(2);
     close(sd);
+    if(ret == P_FINISH)
+        return 0;
+    else
+        return -1;
+
+}
+
+int  read_vdb(int *q)
+{
+    char *gv[3]={"main","param/a.param", NULL};
+    if(vdb_init_read(&ss, q, 2, gv) == 0)
+    {
+        return 0;
+    }
+    return -1;
 
 
 }
-void read_vdb(int *q)
+
+
+/*server在初始化过程时执行：C0=H0*C(0)
+ */
+void prep_as(struct setup_struct *ss, struct aux_struct *a)
 {
-    char *gv[3]={"main","param/a.param", NULL};
-    vdb_init_read(&ss, q, 2, gv);
+   element_set(a->H0, ss->H0);
+   element_set(a->CU0, ss->PK.CU0);
+   element_set(a->Cf1, ss->PK.Cf1);
+   a->T = ss->T;
+}
+
+void show_proof(struct proof_tao *t)
+{
+    char buf[256];
+    mpz_get_str(buf, 10, t->vx);
+    printf("--------------show proof-------------------\n");
+    printf("db[x]=%s\n", buf);
+    element_printf("Paix=%B\nHT=%B\nCT-1=%B\nCT=%B\n",
+                    t->paix, t->HT, t->CTm1, t->CT);
+    printf("T=%lld\n", t->T);
+}
+
+/*模拟server执行query的过程
+ */
+void prep_proof(struct setup_struct *ss, struct proof_tao *t,
+                  struct aux_struct *a, int x)
+{
+    getX(x, t->vx);
+    element_set(t->HT, a->H0);
+    element_set(t->CTm1, a->Cf1);
+    element_set(t->CT, a->CU0);
+    t->T = a->T;
+}
+
+void dump_hex(unsigned char *buf, int len)
+{
+    int i;
+    for(i = 0; i < len; i++)
+        printf("%02x ", buf[i]);
+    printf("\n");
+}
+int vdb_query(int q, int x)
+{
+    if(x>q)
+        return -1;
+    if(sizeof(struct packet)!=8)
+    {
+        printf("sizeof struct pakcet !=8\n");
+        exit(-1);
+    }
+    int sd = connect_server();
+
+    static char buf[1024];
+
+
+    struct packet *pkt = (struct packet *)buf;
+    if(send_header(sd, T_QUERY, sizeof(x)) != 0)
+    {
+        printf("Send header failed!\n");
+        close(sd);
+        return -1;
+    }
+    if(write_all(sd, (char*)&x, sizeof(x)) != sizeof(x))
+    {
+        printf("Send x failed!\n");
+        close(sd);
+        return -1;
+    }
+
+    /*memset(buf, 0, sizeof(buf));
+    int ret = read_all_s(sd, buf, 1024);
+    dump_hex(buf, 1024);
+*/
+    if(read_all(sd, (char*)pkt, sizeof(struct packet))
+            != sizeof(struct packet))
+    {
+        printf("read reply head failed!\n");
+        close(sd);
+        return -1;
+    }
+    if(pkt->type != T_REPLY_QUERY)
+    {
+        printf("Bad reply! type=%x\n", pkt->type);
+        close(sd);
+        return -1;
+    }
+    if(1024 - sizeof(struct packet) < pkt->len || pkt->len <=0)
+    {
+        printf("pkt len too long. failed! pkt_len=%x\n", pkt->len);
+        close(sd);
+        return -1;
+    }
+    if(read_all(sd, ((char*)pkt)+sizeof(struct packet), pkt->len)
+            != pkt->len)
+    {
+        printf("real pai failed!\n");
+        close(sd);
+        return -1;
+    }
+    element_t pai;
+    element_init_G1(pai, ss.S.pp->pairing);
+    if(element_from_bytes(pai, ((char*)pkt+sizeof(struct packet))) <= 0)
+    {
+        printf("parse pai failed!\n");
+        close(sd);
+        return -1;
+    }
+    close(sd);
+    init_as_tao(&ss, &as, &tao);
+    ss.S.aux = &as;
+    prep_as(&ss, &as);
+    prep_proof(&ss, &tao, &as, x);
+    element_set(tao.paix, pai);
+    //show_proof(&tao);
+    //char tbuf[232];
+    //element_to_bytes(tbuf, tao.CTm1);
+    int b = vdb_verify(&ss, x,  &tao);
+    if(!b)
+        printf("equal:Verify failed!\n");
+    destroy_as_tao(&as, &tao);
+    return b;
+
 }
 int main()
 {
     int q = 100;
-    init_vdb(q);
+    if(init_vdb(q) != 0)
+    {
+        printf("init_vdb failed!\n");
+        exit(-1);
+    }
+
+    //read_vdb(&q);
+    //init_db(q);
+    if(vdb_query(q, 50) == 1)
+    {
+        printf("Verify success!\n");
+        return 1;
+    }
+    else
+    {
+        printf("Verify failed!\n");
+        return -2;
+    }
+
     return 0;
 }

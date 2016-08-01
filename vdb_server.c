@@ -19,6 +19,7 @@ static char CU0_file[FILE_NAME_LEN] = "./sparam/CU0";
 static char Cf1_file[FILE_NAME_LEN] = "./sparam/Cf1";
 static char H0_file[FILE_NAME_LEN] = "./sparam/H0";
 static char T_file[FILE_NAME_LEN] = "./sparam/T";
+static char Prog_file[FILE_NAME_LEN] = "./sparam/Prog";
 struct setup_struct ss;
 struct aux_struct as;
 struct proof_tao tao;
@@ -27,13 +28,14 @@ int vdb_init_read(struct setup_struct *ss,int *tq,  int argc, char *argv[])
 {
 	int i, j, q = 0;
 //	element_t *z;
-	element_t tz;
-	element_t ths;
-    element_t hv;
-	element_pp_t gpp;
+	//element_t tz;
+	//element_t ths;
+    //element_t hv;
+	//element_pp_t gpp;
     mpz_t v;
 	struct pp_struct *pp;
-    read_int(&q, q_file);
+    if(read_int(&q, q_file) != 0)
+        return -1;
     *tq = q;
 	memset(ss, 0, sizeof(struct setup_struct));
 	ss->T = 0;
@@ -57,7 +59,7 @@ int vdb_init_read(struct setup_struct *ss,int *tq,  int argc, char *argv[])
 		goto out2;
 
 
-//	pbc_demo_pairing_init(pp->pairing, argc, argv); //init G1 G2
+	pbc_demo_pairing_init(pp->pairing, argc, argv); //init G1 G2
 
 	/*element_init_G1(pp->g, pp->pairing);		//let g be a generator of G1
     if(read_g(pp->g) != 0)
@@ -89,7 +91,7 @@ int vdb_init_read(struct setup_struct *ss,int *tq,  int argc, char *argv[])
 */
 	//element_pp_t gpp;
 
-	element_pp_init(gpp, pp->g);
+	//element_pp_init(gpp, pp->g);
 	pbc_info("Begin load hij\n");
 	for(i = 0; i < q; i++)
 		for(j = i; j < q; j++)
@@ -103,7 +105,7 @@ int vdb_init_read(struct setup_struct *ss,int *tq,  int argc, char *argv[])
         pbc_die("read hij failed!\n");
      pbc_info("read hij from file!\n");
 
-	element_pp_clear(gpp);
+	//element_pp_clear(gpp);
 
 
     ss->PK.pp =  ss->S.pp = pp;
@@ -123,9 +125,9 @@ int vdb_init_read(struct setup_struct *ss,int *tq,  int argc, char *argv[])
 
 //############### compute H0 how to?? what is H????
 	element_init_G1(ss->H0, pp->pairing);
-	element_init_G1(ths, pp->pairing);
+	//element_init_G1(ths, pp->pairing);
 
-    //save all
+    //read all
     read_int(&(ss->T), T_file);
     read_ele(ss->H0, H0_file);
     //read_ele(ss->SK, "param/SK");
@@ -179,10 +181,92 @@ int start_listen(void)
     return listen_fd;
 
 }
+
+int write_prog_file(int prog)
+{
+    FILE *fp = fopen(Prog_file, "w");
+    if(fp == NULL)
+    {
+        printf("open prog file failed!\n");
+        return -1;
+    }
+    int ret = fprintf(fp, "%d\n", prog);
+
+    fclose(fp);
+    if(ret <= 0)
+        return -1;
+    else
+        return 0;
+
+}
+int get_prog(void)
+{
+    FILE *fp = fopen(Prog_file, "r");
+    int prog = 0;
+    if(fp == NULL)
+    {
+        if(write_prog_file(P_UNINIT) ==-1)
+            return -1;
+        return P_UNINIT;
+    }
+    int ret = fscanf(fp, "%d\n", &prog);
+
+    fclose(fp);
+    if(ret <= 0)
+        return -1;
+    else
+        return prog;
+}
 #define BUF_SIZE 2048
 static char rcv_buf[BUF_SIZE];
 
 int be_reload = 1;
+int be_inited = 0;
+
+int handle_query(int fd, struct packet *pkt)
+{
+    int x = 0;
+    if(pkt->len != sizeof(x))
+    {
+        printf("x len error!\n");
+        return 0;
+    }
+    if(read_all(fd,(char*)&x, sizeof(x)) != sizeof(x))
+    {
+        printf("receive x failed!\n");
+        return 0;
+    }
+    element_t pai;
+    element_init_G1(pai, ss.S.pp->pairing);
+    if(vdb_query_paix(pai, &ss, x) !=0)
+    {
+        printf("query paix failed!\n");
+        return 0;
+    }
+    struct packet rep;
+    rep.type = T_REPLY_QUERY;
+    rep.len = element_length_in_bytes(pai);
+    char buf[1024];
+    if(rep.len > 1024)
+    {
+        printf("element pai too long!\n");
+        return 0;
+    }
+    printf("x=%d pai len=%d\n", x, rep.len);
+    element_to_bytes(buf, pai);
+    //memset(&rep,0xff,sizeof(rep));
+    if(write_all(fd, (char*)&rep, sizeof(rep)) == sizeof(rep) &&
+       write_all(fd, buf, rep.len) == rep.len)
+    {
+        printf("replay query finished!\n");
+        return 1;
+    }
+    else
+    {
+        printf("Send replay data failed!\n");
+        return 0;
+    }
+}
 /**
  * pkt len is BUF_SIZE
  */
@@ -193,34 +277,55 @@ int handle_pkt(int fd, struct packet *pkt)
     {
         case T_FILE_Q:
             printf("Receive file q.\n");
+            write_prog_file(P_INITING);
+            be_reload = 1;
             return recv_file(fd, q_file, pkt->len) == pkt->len;
             break;
         case T_FILE_HIJ:
             printf("Receive file hij.\n");
+            write_prog_file(P_INITING);
+            be_reload = 1;
             return recv_file(fd, hij_file, pkt->len) == pkt->len;
             break;
         case T_FILE_H0:
+            write_prog_file(P_INITING);
+            be_reload = 1;
             return recv_file(fd, H0_file, pkt->len)== pkt->len;
             break;
 
         case T_FILE_Cf1:
+            write_prog_file(P_INITING);
+            be_reload = 1;
             return recv_file(fd, Cf1_file, pkt->len) == pkt->len;
             break;
 
         case T_FILE_C0:
+            write_prog_file(P_INITING);
+            be_reload = 1;
             return recv_file(fd,  C0_file, pkt->len) == pkt->len;
             break;
 
         case T_FILE_CU0:
+            write_prog_file(P_INITING);
+            be_reload = 1;
             return recv_file(fd, CU0_file, pkt->len) == pkt->len;
             break;
 
         case T_FILE_T:
+            write_prog_file(P_INITING);
+            be_reload = 1;
             return recv_file(fd, T_file, pkt->len) == pkt->len;
             break;
-
+        case T_FINISH:
+            write_prog_file(P_FINISH);
+            be_reload = 1;
+            printf("Init file receive finished.\n");
+            return 1;
+            break;
         case T_QUERY:
             printf("query.\n");
+            if(get_prog() == P_FINISH)
+                return handle_query(fd, pkt);;
             break;
 
         default:
@@ -228,19 +333,23 @@ int handle_pkt(int fd, struct packet *pkt)
     }
     return 1;
 }
+static void reload();
 void handle_client(int fd)
 {
     char wel[] = "Welcome to use vdb server.\n";
     const int len = sizeof(struct packet);
     struct packet *pkt = (struct packet *)rcv_buf;
-    write(fd, wel, sizeof(wel));
+    //write(fd, wel, sizeof(wel));
     while(1)
     {
+        if(be_reload && get_prog() == P_FINISH)
+            reload();
         if(read_all(fd, (char*)pkt, len) != len)
         {
             printf("read pkt failed!\n");
             break;
         }
+
         if(!handle_pkt(fd, pkt))
         {
             printf("Handle pkt failed!\n");
@@ -249,19 +358,25 @@ void handle_client(int fd)
     }
     close(fd);
 }
-void reload()
+static void reload()
 {
     char *gv[3]={"main","param/a.param", NULL};
-    vdb_init_read(&ss, &q,  2,  gv);
+    if(get_prog() == P_FINISH)
+    {
+        printf("reload params, please wait...\n");
+        if(vdb_init_read(&ss, &q,  2,  gv) != 0)
+            write_prog_file(P_UNINIT);
+    }
+    be_reload = 0;
 }
 void run_server(int fd)
 {
-    if(be_reload)
-        reload();
     int client_fd = -1;
     printf("Server is running.\n");
     while(1)
     {
+        if(be_reload && get_prog() == P_FINISH)
+            reload();
         client_fd = accept(fd, NULL, 0);
         if(fd<0)
         {
@@ -274,7 +389,9 @@ void run_server(int fd)
 }
 int main()
 {
-
+    be_inited = get_prog();
+    reload();
+    init_db(q);
     run_server(start_listen());
     return 0;
 }

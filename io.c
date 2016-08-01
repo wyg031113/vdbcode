@@ -42,6 +42,25 @@ int read_all(int fd, char *buf, int len)
     }
     return real_read;
 }
+int read_all_s(int fd, char *buf, int len)
+{
+    int ret = 0;
+    int real_read = 0;
+    while(len > 0)
+    {
+        ret = recv(fd, buf+real_read, len);
+        if(ret <= 0)
+        {
+            printf("read error:%s\n", strerror(errno));
+            break;
+        }
+        real_read += ret;
+        len -= ret;
+
+    }
+    return real_read;
+}
+
 #define BUF_SIZE 2048
 int recv_file(int fd, const char *fname, int len)
 {

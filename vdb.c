@@ -343,7 +343,7 @@ int vdb_query_paix(element_t paix, struct setup_struct *ss, int x)
 	struct s_struct *S = &ss->S;
 	struct pp_struct *pp = PK->pp;
 	int q = pp->q;
-
+    int ret = 0;
 	mpz_t v;
 	element_t t1;
 	element_t t2;
@@ -360,7 +360,11 @@ int vdb_query_paix(element_t paix, struct setup_struct *ss, int x)
 	for(j = 0; j < q; j++)
 		if(j != x)
 		{
-			getX(j, v);
+			if(getX(j, v) !=0)
+            {
+                ret = -1;
+                goto out;
+            }
             getHij(pp, hij, x, j);
            /* element_mul_zn(t2, pp->z[x], pp->z[j]);
             element_mul_mpz(t2, t2, v);
@@ -381,11 +385,12 @@ int vdb_query_paix(element_t paix, struct setup_struct *ss, int x)
 			}
 		}
     printf("prepaired proof pai, used times %f seconds.\n", (clock()-t)*1.0/CLOCKS_PER_SEC);
+out:
 	mpz_clear(v);
     element_clear(hij);
     element_clear(t1);
     element_clear(t2);
-	return 0;
+	return ret;
 }
 
 int vdb_verify(struct setup_struct *ss, int x, struct proof_tao *prf)
