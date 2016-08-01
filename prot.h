@@ -12,6 +12,7 @@
 #define T_FILE_C0 9
 #define T_FINISH 10
 #define T_REPLY_QUERY 11
+#define T_HIJ 12
 #define P_UNINIT 1
 #define P_INITING 2
 #define P_FINISH 3

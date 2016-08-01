@@ -20,6 +20,7 @@ unsigned long client_flag = 0;
 char table[128] = "plain_tb_test";
 MYSQL *conn;
 double used_time = 0;
+static int bedb_inited = 0;
 double getUsedTime()
 {
     //double f = used_time*1.0/CLOCKS_PER_SEC;
@@ -29,6 +30,9 @@ double getUsedTime()
 }
 int init_db(int size, const char *config_file)
 {
+    if(bedb_inited)
+        return 0;
+
     int  i;
     FILE *fp = fopen(config_file, "r");
     int pt = 0;
@@ -59,6 +63,8 @@ int init_db(int size, const char *config_file)
         exit(-1);
     }
     printf("connect mysql success!\n");
+    bedb_inited = 1;
+    printf("DB inited!\n");
     /*printf("Begin init mysql hash data.\n");
 
     mpz_t v;
@@ -176,11 +182,15 @@ int updateX(int x)
 }
 void destroy_db()
 {
-    free(sdb);
+    if(!bedb_inited)
+        return;
     int  i;
     for(i = 0; i < db_size; i++)
         mpz_clear(sdb[i]);
     db_size = 0;
     mysql_close(conn);
+    bedb_inited = 0;
+    free(sdb);
+    printf("DB cleared!\n");
 
 }

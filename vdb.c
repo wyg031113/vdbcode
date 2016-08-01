@@ -205,14 +205,14 @@ int vdb_setup(struct setup_struct *ss, int q, int argc, char *argv[])
 	}
     if(sstatus == 2)
     {
-        if(read_hi(pp->hi, q) !=0)
+        if(read_arr(pp->hi, q, "param/hi") !=0)
             pbc_die("read hi failed!\n");
 
         pbc_info("read hi from file!\n");
     }
     else
     {
-        if(save_hi(pp->hi, q, max_hi_len) !=0)
+        if(save_arr(pp->hi, q, max_hi_len, "param/hi") !=0)
             pbc_die("save hi failed!\n");
         pbc_info("save hi to file!\n");
     }

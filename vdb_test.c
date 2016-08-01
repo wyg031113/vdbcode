@@ -292,7 +292,7 @@ int vdb_init_read(struct setup_struct *ss,int *tq,  int argc, char *argv[])
         //pbc_info("n=%d\n", n);
 
 	}
-    if(read_hi(pp->hi, q) !=0)
+    if(read_arr(pp->hi, q, "param/hi") !=0)
         pbc_die("read hi failed!\n");
     pbc_info("read hi from file!\n");
 	element_pp_clear(gpp);

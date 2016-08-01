@@ -19,6 +19,7 @@ struct proof_tao tao;
 static char serip[17]="127.0.0.1";
 static unsigned short port = 7788;
 static char hij_file[FILE_NAME_LEN] = "./param/hij";
+static char hi_file[FILE_NAME_LEN] = "./param/hi";
 static char q_file[FILE_NAME_LEN] = "./param/q";
 static char C0_file[FILE_NAME_LEN] = "./param/C0";
 static char CU0_file[FILE_NAME_LEN] = "./param/CU0";
@@ -27,6 +28,7 @@ static char H0_file[FILE_NAME_LEN] = "./param/H0";
 static char T_file[FILE_NAME_LEN] = "./param/T";
 static char Prog_file[FILE_NAME_LEN] = "./param/Prog";
 static char ver_file[FILE_NAME_LEN] = "./param/ver";
+static char z_file[FILE_NAME_LEN] = "./param/z";
 static char mysql_conf_file[FILE_NAME_LEN] = "./param/mysql_conf";
 int connect_server()
 {
@@ -57,7 +59,7 @@ int send_header(int fd, int type, int len)
     pkt.len = len;
     if(write_all(fd, (char *)&pkt, sizeof(pkt)) != sizeof(pkt))
     {
-        printf("write header hij file failed!\n");
+        printf("write header  failed!\n");
         return -1;
     }
     return 0;
@@ -214,11 +216,16 @@ int vdb_init_read(struct setup_struct *ss,int *tq,  int argc, char *argv[])
 	{
 		element_init_G1(pp->hi[i], pp->pairing);
         element_init_Zr(z[i], pp->pairing);			//let z in ZZr
-		element_random(z[i]);
+	//	element_random(z[i]);
         //pbc_info("n=%d\n", n);
 
 	}
-    if(read_hi(pp->hi, q) !=0)
+
+    if(read_arr(z, q, z_file) !=0)
+        pbc_die("read z failed!\n");
+    pbc_info("read z from file!\n");
+
+    if(read_arr(pp->hi, q, hi_file) !=0)
         pbc_die("read hi failed!\n");
     pbc_info("read hi from file!\n");
 	element_pp_clear(gpp);
@@ -348,11 +355,14 @@ int vdb_init_save(struct setup_struct *ss, int q, int argc, char *argv[])
         //pbc_info("n=%d\n", n);
 		element_pp_pow_zn(pp->hi[i], z[i], gpp);
         int n = element_length_in_bytes(pp->hi[i]);
-        int nc = element_length_in_bytes_compressed(pp->hi[i]);
-        max_hi_len = nc > max_hi_len ? nc : max_hi_len;
+        max_hi_len = n > max_hi_len ? n : max_hi_len;
 
 	}
-    if(save_hi(pp->hi, q, max_hi_len) !=0)
+
+    if(save_arr(z, q, element_length_in_bytes(z[0]), z_file) !=0)
+        pbc_die("save z failed!\n");
+    pbc_info("save z to file!\n");
+    if(save_arr(pp->hi, q, max_hi_len, hi_file) !=0)
         pbc_die("save hi failed!\n");
     pbc_info("save hi to file!\n");
     pbc_info("Compute hi finished!\n");
@@ -361,7 +371,7 @@ int vdb_init_save(struct setup_struct *ss, int q, int argc, char *argv[])
 	element_init_Zr(tz, pp->pairing);
 
 	//element_pp_t gpp;
-
+/*
 	element_pp_init(gpp, pp->g);
 	pbc_info("Begin compute hij\n");
     int max_hij_len = 0;
@@ -388,7 +398,7 @@ int vdb_init_save(struct setup_struct *ss, int q, int argc, char *argv[])
 	element_pp_clear(gpp);
 
 	pbc_info("end compute hij\n");
-
+*/
     ss->PK.pp =  ss->S.pp = pp;
 
 	//random chose y==SK
@@ -510,7 +520,7 @@ int init_vdb(int q)
     int sd = connect_server();
     ret  = P_INITING;
     if(
-    !send_param_file(sd, T_FILE_HIJ) &&
+    //!send_param_file(sd, T_FILE_HIJ) &&
     !send_param_file(sd, T_FILE_T) &&
     !send_param_file(sd, T_FILE_CU0) &&
     !send_param_file(sd, T_FILE_Cf1) &&
@@ -581,6 +591,49 @@ void dump_hex(unsigned char *buf, int len)
     for(i = 0; i < len; i++)
         printf("%02x ", buf[i]);
     printf("\n");
+}
+
+int vdb_send_hxj(int fd, int q,  int x)
+{
+    struct pp_struct *pp = ss.S.pp;
+    element_pp_t gpp;
+    element_t hxj;
+    element_t tz;
+    int ret = 0;
+    int i,j;
+    char buf[256];
+
+    int n = pairing_length_in_bytes_compressed_G1(pp->pairing);
+
+    if(n>256)
+        return -1;
+
+    send_header(fd, T_HIJ, n*(x-1));
+
+    element_init_G1(hxj, ss.S.pp->pairing);
+    element_init_Zr(tz, ss.S.pp->pairing);
+	element_pp_init(gpp, pp->g);
+	pbc_info("Begin compute hij\n");
+    i = x;
+		for(j = 0; j < q; j++)
+		{
+            if(j == i)
+                continue;
+			element_mul_zn(tz, pp->z[i], pp->z[j]);
+		    element_pp_pow_zn(hxj, tz, gpp);
+            memset(buf, 0, n);
+            element_to_bytes_compressed(buf, hxj);
+            if(write_all(fd, buf, n) != n)
+            {
+                ret = -1;
+                break;
+            }
+		}
+
+	element_pp_clear(gpp);
+    element_clear(hxj);
+    element_clear(tz);
+    return ret;
 }
 int vdb_query(int q, int x)
 {
