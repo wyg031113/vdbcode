@@ -5,6 +5,7 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <time.h>
+#include <getopt.h>
 #include "save_param.h"
 #include "io.h"
 #include "prot.h"
@@ -25,7 +26,7 @@ static char Cf1_file[FILE_NAME_LEN] = "./param/Cf1";
 static char H0_file[FILE_NAME_LEN] = "./param/H0";
 static char T_file[FILE_NAME_LEN] = "./param/T";
 static char Prog_file[FILE_NAME_LEN] = "./param/Prog";
-static char ver_file[FILE_NAME_LEN] = "./param/Prog";
+static char ver_file[FILE_NAME_LEN] = "./param/ver";
 int connect_server()
 {
     int ser = -1;
@@ -582,7 +583,7 @@ void dump_hex(unsigned char *buf, int len)
 }
 int vdb_query(int q, int x)
 {
-    if(x>q)
+    if(x>=q || x < 0)
         return -1;
     if(sizeof(struct packet)!=8)
     {
@@ -662,27 +663,79 @@ int vdb_query(int q, int x)
     return b;
 
 }
-int main()
+
+int init(int q)
 {
-    int q = 100;
+    save_prog(P_UNINIT);
     if(init_vdb(q) != 0)
     {
         printf("init_vdb failed!\n");
-        exit(-1);
+        return -1;
     }
-
-    //read_vdb(&q);
-    //init_db(q);
-    if(vdb_query(q, 50) == 1)
+    return 0;
+}
+int query(int x)
+{
+    int q = 0;
+    save_int(Q_ING, ver_file);
+    read_vdb(&q);
+    init_db(q);
+    if(vdb_query(q, x) == 1)
     {
+        save_int(Q_SUCCESS, ver_file);
         printf("Verify success!\n");
         return 1;
     }
     else
     {
+        save_int(Q_FAILED, ver_file);
         printf("Verify failed!\n");
         return -2;
     }
 
+}
+int main(int argc, char *argv[])
+{
+    int q = -1;
+    int be_init = 0;
+    int be_query = 0;
+    int x = -1;
+    int opt;
+    while((opt = getopt(argc, argv, "in:qx:")) != -1)
+    {
+        switch(opt){
+            case 'i':
+                be_init = 1;
+                break;
+            case 'n':
+                q = atoi(optarg);
+                break;
+            case 'q':
+                be_query = 1;
+                break;
+            case 'x':
+                x = atoi(optarg);
+                break;
+            default:
+                fprintf(stderr,"Usage: vdb_client [-i -n 100] [-q -x 23]\n");
+                break;
+        }
+    }
+    if((be_init == 1 && q <= 0) || (be_init==0&&q>0))
+    {
+        printf("-i -n must be coexist.\n");
+        return -1;
+    }
+
+
+    if((be_query == 1 && x < 0) || (be_query==0 && x>=0))
+    {
+        printf("-q -x  must be coexist.\n");
+        return -1;
+    }
+    if(be_init)
+        return init(q);
+    if(be_query)
+        return query(x);
     return 0;
 }

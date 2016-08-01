@@ -236,6 +236,11 @@ int handle_query(int fd, struct packet *pkt)
         printf("receive x failed!\n");
         return 0;
     }
+    if(x >=q || x <0)
+    {
+        printf("x is out of range!\n");
+        return 0;
+    }
     element_t pai;
     element_init_G1(pai, ss.S.pp->pairing);
     if(vdb_query_paix(pai, &ss, x) !=0)
@@ -366,6 +371,12 @@ static void reload()
         printf("reload params, please wait...\n");
         if(vdb_init_read(&ss, &q,  2,  gv) != 0)
             write_prog_file(P_UNINIT);
+        else
+        {
+            printf("Re init database.\n");
+            destroy_db();
+            init_db(q);
+        }
     }
     be_reload = 0;
 }

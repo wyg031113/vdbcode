@@ -6,5 +6,6 @@ vdb_test
 *.o
 tags
 cscope.out
+!sparam/a.param
 sparam
 param

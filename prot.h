@@ -15,6 +15,10 @@
 #define P_UNINIT 1
 #define P_INITING 2
 #define P_FINISH 3
+
+#define Q_ING 1
+#define Q_FAILED 2
+#define Q_SUCCESS 3
 struct packet
 {
     int type;
