@@ -63,7 +63,7 @@ struct proof_tao
 /*pair = |-|(h(x,j) ^ vj)  j in 1 to q and j != x
  *
  */
-int vdb_query_paix(element_t paix, struct setup_struct *ss, int x);
+int vdb_query_paix(element_t paix, struct setup_struct *ss, int x, int client_fd);
 int vdb_verify(struct setup_struct *ss, int x, struct proof_tao *prf);
 //calculate t'
 int vdb_update_client(element_t tpx, struct setup_struct *ss, int x, mpz_t vx,  mpz_t new_vx);

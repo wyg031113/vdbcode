@@ -72,6 +72,8 @@ int hash(element_t H0, element_t Cf1, element_t C0, long long  T)
 	return 0;
 }
 
+/**计算Hi,或者返回存储的Hi
+ */
 inline void getHi(struct pp_struct *p, element_t value, int i)
 {
    element_set(value, p->hi[i]);
@@ -80,6 +82,8 @@ inline void getHi(struct pp_struct *p, element_t value, int i)
     //element_printf("p->g=%B z[%d]=%B\n", p->g, i, p->z[i]);
 }
 
+/**计算Hij,或者返回存储的Hij
+ */
 inline void getHij(struct pp_struct *p, element_t value, int i, int j)
 {
    element_set(value, p->hij[i*p->q+j]);
@@ -90,11 +94,19 @@ inline void getHij(struct pp_struct *p, element_t value, int i, int j)
 	element_pow_zn(value, p->g, mul);
     element_clear(mul);
 }
-static char hbuf[1024];
-extern int g_client;
-int getHij_fd(struct pp_struct *p, element_t value, int i, int j)
+
+/*从socket中接收Hij
+ */
+//extern int g_client;
+int getHij_fd(struct pp_struct *p, element_t value, int i, int j, int g_client)
 {
     int n = pairing_length_in_bytes_G1(p->pairing);
+    char hbuf[256];
+    if(n > 256)
+    {
+        printf("error:Temp buf too small.\n");
+        return -1;
+    }
     memset(hbuf,0, n);
     if(read_all(g_client, hbuf, n) != n)
         return -1;
@@ -350,8 +362,8 @@ out5:
 /*pair = |-|(h(x,j) ^ vj)  j in 1 to q and j != x
  *
  */
-int getHij_fd(struct pp_struct *p, element_t value, int i, int j);
-int vdb_query_paix(element_t paix, struct setup_struct *ss, int x)
+int getHij_fd(struct pp_struct *p, element_t value, int i, int j, int client_fd);
+int vdb_query_paix(element_t paix, struct setup_struct *ss, int x, int client_fd)
 {
 	struct pk_struct *PK = &ss->PK;
 	struct s_struct *S = &ss->S;
@@ -379,7 +391,7 @@ int vdb_query_paix(element_t paix, struct setup_struct *ss, int x)
                 ret = -1;
                 goto out;
             }
-            if(getHij_fd(pp, hij, x, j) != 0)
+            if(getHij_fd(pp, hij, x, j, client_fd) != 0)
                 goto out;
            /* element_mul_zn(t2, pp->z[x], pp->z[j]);
             element_mul_mpz(t2, t2, v);

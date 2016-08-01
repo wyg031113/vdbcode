@@ -5,6 +5,10 @@
 #include <fcntl.h>
 #include <errno.h>
 
+/*向fd中写入len字节数据，直到完全写入或者出错
+ * 才返回。
+ * return:实际写入字节数
+ */
 int write_all(int fd, const char *buf, int len)
 {
     int ret = 0;
@@ -24,6 +28,11 @@ int write_all(int fd, const char *buf, int len)
     return real_write;
 }
 
+
+/*向fd中读取len字节数据，直到完全读入或者出错
+ * 才返回。
+ * return:实际读入字节数
+ */
 int read_all(int fd, char *buf, int len)
 {
     int ret = 0;
@@ -42,6 +51,10 @@ int read_all(int fd, char *buf, int len)
     }
     return real_read;
 }
+
+/**
+ * 用recv实现读入功能
+ */
 int read_all_s(int fd, char *buf, int len)
 {
     int ret = 0;
@@ -61,10 +74,14 @@ int read_all_s(int fd, char *buf, int len)
     return real_read;
 }
 
+/*从fd接收文件，并保存到fname中，文件长度len
+ * return:实际接收文件长度
+ * 出错返回-1
+ */
 #define BUF_SIZE 2048
 int recv_file(int fd, const char *fname, int len)
 {
-    char data[BUF_SIZE];
+    static char data[BUF_SIZE]; //注意，静态成员
     int real_recv = 0;
     printf("rcv file len = %d\n", len);
     int file_fd = open(fname, O_WRONLY|O_CREAT, 0666);
@@ -88,6 +105,10 @@ int recv_file(int fd, const char *fname, int len)
     return real_recv;
 }
 
+/*向fd发送文件fname，文件长度len
+ * return:实际发送文件长度
+ * 出错返回-1
+ */
 int send_file(int fd, const char *fname, int len)
 {
     char data[BUF_SIZE];
@@ -115,6 +136,8 @@ int send_file(int fd, const char *fname, int len)
     return real_send;
 }
 
+/**获取文件长度
+ */
 int get_file_len(const char *file)
 {
     struct stat st;
