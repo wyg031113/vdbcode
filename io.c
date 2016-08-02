@@ -83,7 +83,7 @@ int recv_file(int fd, const char *fname, int len)
 {
     static char data[BUF_SIZE]; //注意，静态成员
     int real_recv = 0;
-    printf("rcv file len = %d\n", len);
+    printf("rcv file %s len = %d\n", fname, len);
     int file_fd = open(fname, O_WRONLY|O_CREAT, 0666);
     if(file_fd < 0)
     {
@@ -100,7 +100,7 @@ int recv_file(int fd, const char *fname, int len)
         len -= rbytes;
         real_recv += rbytes;
     }
-    printf("rcv real file len = %d\n", real_recv);
+   // printf("rcv real file len = %d\n", real_recv);
     close(file_fd);
     return real_recv;
 }
@@ -120,7 +120,7 @@ int send_file(int fd, const char *fname, int len)
         printf("open file %s failed!\n", fname);
         return -1;
     }
-    printf("file len = %d\n", len);
+    printf("send file %s len = %d\n", fname, len);
     while(len > 0)
     {
         int rbytes = len < BUF_SIZE ? len : BUF_SIZE;
@@ -132,7 +132,7 @@ int send_file(int fd, const char *fname, int len)
         real_send += rbytes;
     }
     close(file_fd);
-    printf("read send file len = %d\n", real_send);
+    //printf("read send file len = %d\n", real_send);
     return real_send;
 }
 
@@ -145,3 +145,36 @@ int get_file_len(const char *file)
         return -1;
     return st.st_size;
 }
+/**切换运行路径到可执行文件所在路径
+ * arg0是main函数的argv[0]
+ */
+void change_dir(char *arg0)
+{
+    int i = 0;
+    char dir_buf[256];
+    if(arg0[0] == '/')
+    {
+        i = strlen(arg0)-1;
+        while(i>0 && arg0[i] != '/')
+            i--;
+        snprintf(dir_buf, i+1,"%s", arg0);
+        printf("up change pwd to dir:%s\n", dir_buf);
+        chdir(dir_buf);
+    }
+    else
+    {
+        if(!(arg0[0] == '.' && arg0[1]=='.'))
+        while(arg0[i] == '.' || arg0[i] == '/')
+            i++;
+        snprintf(dir_buf, 256,"%s/%s",getenv("PWD"), arg0+i);
+
+        i = strlen(dir_buf)-1;
+        while(i>0 && dir_buf[i] != '/')
+            i--;
+        dir_buf[i] = '\0';
+        printf("down change pwd to dir:%s arg0=%s\n", dir_buf, arg0);
+        chdir(dir_buf);
+    }
+    setenv("PWD", dir_buf, 1);
+}
+

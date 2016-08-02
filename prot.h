@@ -13,6 +13,7 @@
 #define T_FINISH 10
 #define T_REPLY_QUERY 11
 #define T_HIJ 12
+#define T_FILE_APARAM 13
 #define P_UNINIT 1
 #define P_INITING 2
 #define P_FINISH 3

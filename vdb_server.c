@@ -17,6 +17,7 @@
  */
 #define FILE_NAME_LEN 128
 #define DEFAULT_LISTEN_PORT 7788
+void restart();
 static unsigned short listen_port = DEFAULT_LISTEN_PORT;  //服务器监听端口
 static char q_file[FILE_NAME_LEN]="./sparam/q";
 static char hij_file[FILE_NAME_LEN]="./sparam/hij";
@@ -25,6 +26,7 @@ static char CU0_file[FILE_NAME_LEN] = "./sparam/CU0";
 static char Cf1_file[FILE_NAME_LEN] = "./sparam/Cf1";
 static char H0_file[FILE_NAME_LEN] = "./sparam/H0";
 static char T_file[FILE_NAME_LEN] = "./sparam/T";
+static char aparam_file[FILE_NAME_LEN] = "./sparam/a.param";
 static char Prog_file[FILE_NAME_LEN] = "./sparam/Prog";
 static char listen_port_file[FILE_NAME_LEN] = "./sparam/listen_port";
 static char mysql_conf_file[FILE_NAME_LEN] = "./sparam/mysql_conf";
@@ -90,9 +92,9 @@ out5:
 
 /**开始监听端口
  */
+int listen_fd = -1;
 int start_listen(void)
 {
-    int listen_fd = -1;
     struct sockaddr_in ser_addr;
     bzero(&ser_addr, sizeof(ser_addr));
     ser_addr.sin_family = AF_INET;
@@ -104,6 +106,10 @@ int start_listen(void)
         printf("socket failed!\n");
         exit(-1);
     }
+
+    int optval = 1;
+    socklen_t len = sizeof(optval);
+    setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR, &optval, len);
 
     if(bind(listen_fd, (struct sockaddr*)&ser_addr, sizeof(ser_addr))!=0)
     {
@@ -283,6 +289,12 @@ int handle_pkt(int fd, struct packet *pkt)
             be_reload = 1;
             return recv_file(fd, T_file, pkt->len) == pkt->len;
             break;
+
+        case T_FILE_APARAM:
+            write_prog_file(P_INITING);
+            be_reload = 1;
+            return recv_file(fd, aparam_file, pkt->len) == pkt->len;
+            break;
         case T_FINISH:  //接收参数结束
             write_prog_file(P_FINISH);
             be_reload = 1;//重新加载参数
@@ -310,7 +322,7 @@ void handle_client(int fd)
     while(1)
     {
         if(be_reload && get_prog() == P_FINISH)
-            reload();
+            restart();
         if(read_all(fd, (char*)pkt, len) != len)
         {
             printf("read pkt failed!\n");
@@ -328,6 +340,20 @@ void handle_client(int fd)
 
 /*重新加载参数
  *
+ */
+
+void restart()
+{
+    printf("restarting server, please wait...!\n");
+    close(listen_fd);
+    destroy_db();
+    char *argv[]={"./vdb_server",NULL};
+    execv(argv[0], argv);
+    printf("restart server failed!\n");
+    exit(-1);
+}
+
+/**加载参数
  */
 static void reload()
 {
@@ -351,6 +377,9 @@ static void reload()
     }
     be_reload = 0;
 }
+
+/**服务器循环
+ */
 void run_server(int fd)
 {
     int client_fd = -1;
@@ -358,7 +387,7 @@ void run_server(int fd)
     while(1)
     {
         if(be_reload && get_prog() == P_FINISH)
-            reload();
+            restart();
         client_fd = accept(fd, NULL, 0);
         if(fd<0)
         {
@@ -369,8 +398,9 @@ void run_server(int fd)
         handle_client(client_fd);
     }
 }
-int main()
+int main(int argc, char *argv[])
 {
+    change_dir(argv[0]);  //更改运行目录，以方便寻找参数文件
     be_inited = get_prog();
     reload();
     init_db(q, mysql_conf_file);

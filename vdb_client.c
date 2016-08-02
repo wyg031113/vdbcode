@@ -30,7 +30,9 @@ static char T_file[FILE_NAME_LEN] = "./param/T";
 static char Prog_file[FILE_NAME_LEN] = "./param/Prog";
 static char ver_file[FILE_NAME_LEN] = "./param/ver";
 static char z_file[FILE_NAME_LEN] = "./param/z";
+static char aparam_file[FILE_NAME_LEN] = "./param/a.param";
 static char mysql_conf_file[FILE_NAME_LEN] = "./param/mysql_conf";
+
 int connect_server()
 {
     int ser = -1;
@@ -53,6 +55,8 @@ int connect_server()
     return ser;
 }
 
+/*发送协议头部
+ */
 int send_header(int fd, int type, int len)
 {
     struct packet pkt;
@@ -66,6 +70,9 @@ int send_header(int fd, int type, int len)
     return 0;
 
 }
+
+/**发送任意文件
+ */
 int send_any(int fd, int type, const char *file_name)
 {
     struct packet pkt;
@@ -90,6 +97,9 @@ int send_any(int fd, int type, const char *file_name)
     return 0;
 
 }
+
+/**发送参数
+ */
 int send_param_file(int fd, int type)
 {
 
@@ -120,6 +130,9 @@ int send_param_file(int fd, int type)
 
         case T_FILE_T:
             return send_any(fd, T_FILE_T, T_file);
+            break;
+        case T_FILE_APARAM:
+            return send_any(fd, T_FILE_APARAM, aparam_file);
             break;
         default:
             return -1;
@@ -163,7 +176,8 @@ void destroy_as_tao(struct aux_struct *a,
     element_clear(t->CT);
 }
 
-
+/**从文件读取参数
+ */
 int vdb_init_read(struct setup_struct *ss,int *tq,  int argc, char *argv[])
 {
 	int i, j, q = 0;
@@ -233,26 +247,7 @@ int vdb_init_read(struct setup_struct *ss,int *tq,  int argc, char *argv[])
 
 	element_init_Zr(tz, pp->pairing);
 
-	//element_pp_t gpp;
-
-	/*element_pp_init(gpp, pp->g);
-	pbc_info("Begin load hij\n");
-	for(i = 0; i < q; i++)
-		for(j = i; j < q; j++)
-		{
-			element_init_G1(pp->hij[i*q+j], pp->pairing);
-			element_init_G1(pp->hij[j*q+i], pp->pairing);
-
-		}
-
-    if(read_hij(pp->hij, q, hij_file) !=0)
-        pbc_die("read hij failed!\n");
-     pbc_info("read hij from file!\n");
-
-	element_pp_clear(gpp);
-
-*/
-    ss->PK.pp =  ss->S.pp = pp;
+	ss->PK.pp =  ss->S.pp = pp;
 
 	//random chose y==SK
 	element_init_Zr(ss->SK, pp->pairing);
@@ -298,6 +293,8 @@ out5:
 	return -1;
 }
 
+/**建立时保存参数到文件
+ */
 int vdb_init_save(struct setup_struct *ss, int q, int argc, char *argv[])
 {
 	int i, j;
@@ -370,37 +367,7 @@ int vdb_init_save(struct setup_struct *ss, int q, int argc, char *argv[])
 	element_pp_clear(gpp);
 
 	element_init_Zr(tz, pp->pairing);
-
-	//element_pp_t gpp;
-/*
-	element_pp_init(gpp, pp->g);
-	pbc_info("Begin compute hij\n");
-    int max_hij_len = 0;
-	for(i = 0; i < q; i++)
-		for(j = i; j < q; j++)
-		{
-			element_init_G1(pp->hij[i*q+j], pp->pairing);
-			element_init_G1(pp->hij[j*q+i], pp->pairing);
-
-			element_mul_zn(tz, z[i],z[j]);
-		    element_pp_pow_zn(pp->hij[i*q+j], tz, gpp);
-			element_set(pp->hij[j*q+i], pp->hij[i*q+j]);
-            int n = element_length_in_bytes(pp->hij[i*q+j]);
-            int nc =  element_length_in_bytes_compressed(pp->hij[i*q+j]);
-//          printf("n=%d nc=%d\n", n, nc);
-            max_hij_len = nc > max_hij_len ? nc : max_hij_len;
-
-		}
-
-    if(save_hij(pp->hij, q, max_hi_len) !=0)
-        pbc_die("save hij failed!\n");
-     pbc_info("save hij to file!\n");
-
-	element_pp_clear(gpp);
-
-	pbc_info("end compute hij\n");
-*/
-    ss->PK.pp =  ss->S.pp = pp;
+   ss->PK.pp =  ss->S.pp = pp;
 
 	//random chose y==SK
 	element_init_Zr(ss->SK, pp->pairing);
@@ -433,7 +400,6 @@ int vdb_init_save(struct setup_struct *ss, int q, int argc, char *argv[])
         else
             element_mul(ss->PK.CR, ss->PK.CR, hv);
     }
-    //printf("t=%lu, now=%lu CPS=%lu diff=%f\n", t, clock(), CLOCKS_PER_SEC, (clock()-t)*1.0/CLOCKS_PER_SEC);
     printf("Beging compute init CR finished, use: %lf seconds!\n", (clock()-t)*1.0/CLOCKS_PER_SEC);
     element_clear(hi);
     mpz_clear(v);
@@ -463,10 +429,7 @@ int vdb_init_save(struct setup_struct *ss, int q, int argc, char *argv[])
     save_ele(ss->PK.Y, "param/Y");
     save_ele(ss->SK, "param/SK");
     save_ele(ss->PK.C0, "param/C0");
-	for(i = 0; i < q; i++)
-		element_clear(z[i]);
-	free(z);
-    printf("save finished!\n");
+	printf("save finished!\n");
 	return 0;
 out1:
 	free(pp->hij);
@@ -479,6 +442,9 @@ out4:
 out5:
 	return -1;
 }
+
+/*保存初始化进度
+ */
 void save_prog(int status)
 {
     if(save_int(status, Prog_file)!= 0)
@@ -488,6 +454,9 @@ void save_prog(int status)
     }
 
 }
+
+/*获取初始化进度
+ */
 int get_prog()
 {
     int status = 0;
@@ -502,6 +471,8 @@ int get_prog()
 }
 
 
+/*初始化客户端,发送参数到服务器
+ */
 int init_vdb(int q)
 {
     init_db(q, mysql_conf_file);
@@ -519,6 +490,11 @@ int init_vdb(int q)
         }
     }
     int sd = connect_server();
+    if(sd < 0)
+    {
+        printf("Connect server failed!\n");
+        exit(-1);
+    }
     ret  = P_INITING;
     if(
     //!send_param_file(sd, T_FILE_HIJ) &&
@@ -528,6 +504,7 @@ int init_vdb(int q)
     !send_param_file(sd, T_FILE_H0) &&
     !send_param_file(sd, T_FILE_C0) &&
     !send_param_file(sd, T_FILE_Q) &&
+    !send_param_file(sd, T_FILE_APARAM) &&
     !send_header(sd, T_FINISH, 0) )
         ret = P_FINISH;
     save_prog(ret);
@@ -574,7 +551,7 @@ void show_proof(struct proof_tao *t)
     printf("T=%lld\n", t->T);
 }
 
-/*模拟server执行query的过程
+/*执行query的过程
  */
 void prep_proof(struct setup_struct *ss, struct proof_tao *t,
                   struct aux_struct *a, int x)
@@ -594,6 +571,8 @@ void dump_hex(unsigned char *buf, int len)
     printf("\n");
 }
 
+/**将Hxj发送给server
+ */
 int vdb_send_hxj(int fd, int q,  int x)
 {
     struct pp_struct *pp = ss.S.pp;
@@ -638,6 +617,9 @@ int vdb_send_hxj(int fd, int q,  int x)
     element_clear(tz);
     return ret;
 }
+
+/**验证x
+ */
 int vdb_query(int q, int x)
 {
     if(x>=q || x < 0)
@@ -741,23 +723,28 @@ int init(int q)
 int query(int x)
 {
     int q = 0;
-    save_int(Q_ING, ver_file);
+    save_int(Q_ING, ver_file);//正在验证-1
     read_vdb(&q);
     printf("Database size:%d rows.\n", q);
     init_db(q, mysql_conf_file);
     if(vdb_query(q, x) == 1)
     {
-        save_int(Q_SUCCESS, ver_file);
+        save_int(Q_SUCCESS, ver_file); //验证成功-3
         printf("Verify success!\n");
         return 1;
     }
     else
     {
-        save_int(Q_FAILED, ver_file);
+        save_int(Q_FAILED, ver_file); //验证失败-2
         printf("Verify failed!\n");
         return -2;
     }
 
+}
+
+void show_usage()
+{
+    fprintf(stdout,"Usage: vdb_client [-i -n 100] [-q -x 23] [-s serip] [-p serport]\n");
 }
 int main(int argc, char *argv[])
 {
@@ -766,7 +753,13 @@ int main(int argc, char *argv[])
     int be_query = 0;
     int x = -1;
     int opt;
-    while((opt = getopt(argc, argv, "in:qx:s:p:")) != -1)
+    change_dir(argv[0]);
+    if(argc<=2)
+    {
+        show_usage();
+        exit(0);
+    }
+    while((opt = getopt(argc, argv, "in:qx:s:p:h")) != -1)
     {
         switch(opt){
             case 'i':
@@ -787,8 +780,13 @@ int main(int argc, char *argv[])
             case 'p':
                 port = atoi(optarg);
                 break;
+            case 'h':
+                show_usage();
+                exit(0);
+                break;
             default:
-                fprintf(stderr,"Usage: vdb_client [-i -n 100] [-q -x 23]\n");
+                show_usage();
+                exit(0);
                 break;
         }
     }
