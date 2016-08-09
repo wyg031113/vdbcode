@@ -104,7 +104,10 @@ int vdb_init_read(struct setup_struct *ss,int *tq,  int argc, char *argv[])
 		}
 
     if(read_hij(pp->hij, q, hij_file) !=0)
-        pbc_die("read hij failed!\n");
+    {
+        pbc_error("read hij failed!\n");
+        return -1;
+    }
      pbc_info("read hij from file!\n");
 
 	//element_pp_clear(gpp);
