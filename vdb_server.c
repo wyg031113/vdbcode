@@ -57,6 +57,56 @@ int vdb_init_read(struct setup_struct *ss,int *tq,  int argc, char *argv[])
 
 	pbc_demo_pairing_init(pp->pairing, argc, argv); //init G1 G2
 
+	/*element_init_G1(pp->g, pp->pairing);		//let g be a generator of G1
+    if(read_g(pp->g) != 0)
+    {
+        pbc_die("read g to file failed!\n");
+        return -1;
+    }
+    pbc_info("read g from file!\n");
+
+    pbc_info("Beging compute hi...\n");
+
+    pp->z = z;
+	element_pp_init(gpp, pp->g);
+
+	for(i = 0; i < q; i++)
+	{
+		element_init_G1(pp->hi[i], pp->pairing);
+        element_init_Zr(z[i], pp->pairing);			//let z in ZZr
+		element_random(z[i]);
+        //pbc_info("n=%d\n", n);
+
+	}
+    if(read_hi(pp->hi, q) !=0)
+        pbc_die("read hi failed!\n");
+    pbc_info("read hi from file!\n");
+	element_pp_clear(gpp);
+
+	element_init_Zr(tz, pp->pairing);
+*/
+	//element_pp_t gpp;
+
+	//element_pp_init(gpp, pp->g);
+	pbc_info("Begin load hij\n");
+	for(i = 0; i < q; i++)
+		for(j = i; j < q; j++)
+		{
+			element_init_G1(pp->hij[i*q+j], pp->pairing);
+			element_init_G1(pp->hij[j*q+i], pp->pairing);
+
+		}
+
+    if(read_hij(pp->hij, q, hij_file) !=0)
+    {
+        pbc_error("read hij failed!\n");
+        return -1;
+    }
+     pbc_info("read hij from file!\n");
+
+	//element_pp_clear(gpp);
+
+
     ss->PK.pp =  ss->S.pp = pp;
 
 	//random chose y==SK

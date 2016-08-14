@@ -804,7 +804,13 @@ int main(int argc, char *argv[])
     }
     if(be_init)
         return init(q);
+    else
     if(be_query)
         return query(x);
+    else
+    {
+                fprintf(stderr,"Usage: vdb_client [-i -n 100] [-q -x 23]\n");
+                exit(-1);
+    }
     return 0;
 }
