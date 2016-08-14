@@ -52,8 +52,10 @@ int vdb_init_read(struct setup_struct *ss,int *tq,  int argc, char *argv[])
 	pp = malloc(sizeof(struct pp_struct));
 	if(NULL == pp)
 		goto out4;
-
     pp->q = q;
+
+    if(0 != init_Hij(pp))
+		goto out2;
 
 	pbc_demo_pairing_init(pp->pairing, argc, argv); //init G1 G2
 
@@ -238,14 +240,14 @@ int handle_query(int fd, struct packet *pkt)
         return 0;
     }
 
-    //从客户端接收hij 这里只接收头部，数据在计算证据pai时接收
+    /*//从客户端接收hij 这里只接收头部，数据在计算证据pai时接收
     struct packet header_hij;
     if(read_all(fd,(char*)&header_hij, sizeof(header_hij)) != sizeof(header_hij))
     {
         printf("receive header hij failed!\n");
         return 0;
     }
-
+*/
     if(x >=q || x <0)
     {
         printf("x is out of range!\n");

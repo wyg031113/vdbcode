@@ -235,6 +235,7 @@ int save_hij(element_t *hij, int q, int max_len)
 {
     int i;
     int j;
+    printf("Hij element len=%d\n", max_len);
     if(NULL == hij || q <=0 || max_len <=0)
         printf("Bad param in save hij\n");
 
@@ -275,7 +276,7 @@ int save_hij(element_t *hij, int q, int max_len)
             printf("element_to_btyes hij[%d][%d] failed!\n", i,j);
             return -1;
         }
-        ret = fwrite(buf, n, 1, fp);
+        ret = fwrite(buf, max_len, 1, fp);
         if(ret != 1)
         {
             fclose(fp);
@@ -326,7 +327,7 @@ int read_hij(element_t *hij, int q, const char *fname)
         if(ret != 1)
         {
             fclose(fp);
-            printf("error:write hij[%d][%d] to file %s failed!\n", i, j,  hij_file);
+            printf("error:read hij[%d][%d] to file %s failed!\n", i, j,  hij_file);
             return -1;
         }
         if(element_from_bytes_compressed(hij[i*q+j], buf) <=0)

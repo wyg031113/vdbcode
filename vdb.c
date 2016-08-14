@@ -391,8 +391,7 @@ int vdb_query_paix(element_t paix, struct setup_struct *ss, int x, int client_fd
                 ret = -1;
                 goto out;
             }
-            if(getHij_fd(pp, hij, x, j, client_fd) != 0)
-                goto out;
+            getHij(pp, hij, x, j);
            /* element_mul_zn(t2, pp->z[x], pp->z[j]);
             element_mul_mpz(t2, t2, v);
 			element_pow_zn(t1, pp->g, t2);

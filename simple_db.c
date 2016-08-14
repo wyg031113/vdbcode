@@ -187,7 +187,6 @@ void destroy_db()
     int  i;
     for(i = 0; i < db_size; i++)
         mpz_clear(sdb[i]);
-    free(sdb);
     db_size = 0;
     mysql_close(conn);
     bedb_inited = 0;

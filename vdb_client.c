@@ -364,7 +364,44 @@ int vdb_init_save(struct setup_struct *ss, int q, int argc, char *argv[])
         pbc_die("save hi failed!\n");
     pbc_info("save hi to file!\n");
     pbc_info("Compute hi finished!\n");
+
+
+
+
+	pbc_info("Begin compute hij\n");
+    int max_hij_len = 0;
+	element_init_Zr(tz, pp->pairing);		//let g be a generator of G1
+	for(i = 0; i < q; i++)
+		for(j = i; j < q; j++)
+		{
+			element_init_G1(pp->hij[i*q+j], pp->pairing);
+			element_init_G1(pp->hij[j*q+i], pp->pairing);
+
+
+
+			    element_mul_zn(tz, z[i],z[j]);
+		    	element_pp_pow_zn(pp->hij[i*q+j], tz, gpp);
+			    element_set(pp->hij[j*q+i], pp->hij[i*q+j]);
+                int n = element_length_in_bytes(pp->hij[i*q+j]);
+                int nc =  element_length_in_bytes_compressed(pp->hij[i*q+j]);
+//                printf("n=%d nc=%d\n", n, nc);
+                max_hij_len = nc > max_hij_len ? nc : max_hij_len;
+
+		}
+
+
+        if(save_hij(pp->hij, q, max_hij_len) !=0)
+            pbc_die("save hi failed!\n");
+        printf("save hij to file! each hij len=%d\n", max_hij_len);
+
+
 	element_pp_clear(gpp);
+    element_clear(tz);
+	pbc_info("end compute hij\n");
+
+
+
+
 
 	element_init_Zr(tz, pp->pairing);
    ss->PK.pp =  ss->S.pp = pp;
@@ -497,7 +534,7 @@ int init_vdb(int q)
     }
     ret  = P_INITING;
     if(
-    //!send_param_file(sd, T_FILE_HIJ) &&
+    !send_param_file(sd, T_FILE_HIJ) &&
     !send_param_file(sd, T_FILE_T) &&
     !send_param_file(sd, T_FILE_CU0) &&
     !send_param_file(sd, T_FILE_Cf1) &&
@@ -647,12 +684,13 @@ int vdb_query(int q, int x)
         close(sd);
         return -1;
     }
-    if(vdb_send_hxj(sd, q,x))
+    /*if(vdb_send_hxj(sd, q,x))
     {
         printf("Send hxj failed!\n");
         close(sd);
         return -1;
     }
+    */
 
 
     /*memset(buf, 0, sizeof(buf));
