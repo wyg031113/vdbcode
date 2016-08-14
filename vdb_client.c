@@ -134,6 +134,9 @@ int send_param_file(int fd, int type)
         case T_FILE_APARAM:
             return send_any(fd, T_FILE_APARAM, aparam_file);
             break;
+        case T_MYSQL_CONF:
+            return send_any(fd, T_MYSQL_CONF, mysql_conf_file);
+            break;
         default:
             return -1;
     }
@@ -542,6 +545,7 @@ int init_vdb(int q)
     !send_param_file(sd, T_FILE_C0) &&
     !send_param_file(sd, T_FILE_Q) &&
     !send_param_file(sd, T_FILE_APARAM) &&
+    !send_param_file(sd, T_MYSQL_CONF) &&
     !send_header(sd, T_FINISH, 0) )
         ret = P_FINISH;
     save_prog(ret);

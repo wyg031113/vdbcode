@@ -39,7 +39,7 @@ int init_db(int size, const char *config_file)
     if(fp == NULL)
     {
         printf("open myslq config file:%s failed!\n", config_file);
-        exit(-1);
+        return (-1);
     }
     fscanf(fp, "%s%d%s%s%s%s", host, &pt, user, passwd, db, table);
     port = pt;

@@ -341,6 +341,12 @@ int handle_pkt(int fd, struct packet *pkt)
             be_reload = 1;
             return recv_file(fd, T_file, pkt->len) == pkt->len;
             break;
+         case T_MYSQL_CONF:
+            write_prog_file(P_INITING);
+            be_reload = 1;
+            return recv_file(fd, mysql_conf_file, pkt->len) == pkt->len;
+            break;
+
 
         case T_FILE_APARAM:
             write_prog_file(P_INITING);
