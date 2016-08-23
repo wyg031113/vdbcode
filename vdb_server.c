@@ -380,7 +380,11 @@ void handle_client(int fd)
     while(1)
     {
         if(be_reload && get_prog() == P_FINISH)
+        {
+            close(fd);
             restart();
+        }
+
         if(read_all(fd, (char*)pkt, len) != len)
         {
             printf("read pkt failed!\n");
@@ -454,6 +458,7 @@ void run_server(int fd)
         }
         printf("accept a client.fd=%d\n", client_fd);
         handle_client(client_fd);
+        close(client_fd);
     }
 }
 int main(int argc, char *argv[])

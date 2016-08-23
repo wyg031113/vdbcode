@@ -1,3 +1,5 @@
-127.0.0.1 3306 root letmein dbtest plain_tb_test
+101.201.47.53 3306 root admin dbtest plain_tb_test
 #mysqlip port  username password database_name table_name
+#only use the first line
+atabase_name table_name
 #only use the first line
